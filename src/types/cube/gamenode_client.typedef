@@ -1,0 +1,33 @@
+// Game client and server node communication
+GameNodeAuth @netki
+{
+	string Token
+}
+
+// When asking game server to join a game
+GameNodeAuthResponse @netki
+{
+	bool AuthSuccess
+	bool JoinSuccess
+}
+
+GameNodeSetupUnreliable @netki
+{
+	string Host
+	u32 Port
+	u32 AuthId
+	byte[] Key
+}
+
+GameNodeUnreliableAuth @netki
+{
+	u32 AuthId
+	u32 Time
+	byte[] Key
+}
+
+GameNodeUnreliableAuthResponse @netki
+{
+	u32 AuthId
+	u32 Time
+}

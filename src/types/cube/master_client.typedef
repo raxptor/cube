@@ -1,0 +1,43 @@
+MasterAuthenticateAnonymous @netki
+{
+	string Playername
+}
+
+MasterAuthenticateExternal @netki
+{
+	// Token received from external auth serv
+	string Token
+}
+
+MasterAuthenticateChallenge @netki
+{
+	string Challenge
+}
+
+MasterJoinedGamesRequest @netki
+{
+
+}
+
+MasterJoinedGamesResponse @netki
+{
+	u32 RequestsCount
+	string[] GameIds
+}
+
+MasterJoinGameRequest @netki
+{
+	string GameId
+}
+
+// Join any game with this configuration
+MasterJoinConfigurationRequest @netki
+{
+	string Configuration
+}
+
+MasterJoinGameResponse @netki
+{
+	string Address
+	string Token
+}

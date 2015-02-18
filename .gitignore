@@ -1,0 +1,17 @@
+*.ncb
+*.suo
+*.user
+*.vcxproj
+*.filters
+*.make
+*.csproj
+*~
+bin
+out
+App.config
+obj
+Debug
+build
+.DS_Store
+_gen
+Makefile

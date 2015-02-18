@@ -1,0 +1,79 @@
+
+GameNodePlayerInfo @netki
+{
+	string PlayerId
+	u32 PingMs
+}
+
+GameNodeGameStatus @netki
+{
+	u32 PlayersJoined
+	u32 PlayerSlotsLeft
+	u32 SpectatorSlotsLeft
+}
+
+GameNodeGameInfo @netki
+{
+	string Id
+	string Configuration
+	string Info
+	string[] RejoinPlayers
+	GameNodeGameStatus Status
+	bool JoinableByConfig
+	bool JoinableByName
+}
+
+GameNodeAuthPlayer @netki
+{
+	string GameId
+	string PlayerId
+	string RequestId
+	string Token
+	bool Success
+	bool IsRejoin
+}
+
+GameNodeGamesList @netki
+{
+	bool IsDynamic
+	u32 MaxLimit
+	u32 Used
+	GameNodeGameInfo[] Games
+}
+
+GameNodePing @netki
+{
+	int Time
+	bool SendGamesList
+}
+
+GameNodeInfo @netki
+{
+	string NodeId
+	string NodeAddress
+	GameNodeGamesList Games
+}
+
+GameNodeCreateGameRequest @netki
+{
+	string Configuration
+}
+
+GameNodeCreateGameResponse @netki
+{
+	// null on failure
+	string GameId	
+}
+
+GameNodeRequestGamesOnPlayer @netki
+{
+	string PlayerId
+	string RequestId
+}
+
+GameNodePlayerIsOnGames @netki
+{
+	string RequestId
+	string PlayerId
+	string[] GameIds
+}

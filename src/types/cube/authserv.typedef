@@ -1,0 +1,18 @@
+AuthservEncryptionKey @netki
+{
+	byte[] Up
+	byte[] Down
+}
+
+AuthservValidateRequest @netki
+{
+	string Token
+	string RequestId
+}
+
+AuthservValidateResponse @netki
+{
+	string RequestId
+	string PlayerId
+	AuthservEncryptionKey[] EncryptionKeys
+}
