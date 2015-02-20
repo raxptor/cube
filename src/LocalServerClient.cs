@@ -14,15 +14,18 @@ namespace Cube
 		private List<netki.Packet> _queue = new List<netki.Packet>();
 		ulong _endpoint;
 		static uint _endPointCounter = 0;
+        private float _serverTickInterval;
+        private float _serverTickAccum;
 
 		class Player : GameInstPlayer
 		{
 		}
 
-		public LocalServerClient(ApplicationPacketHandler handler)
+        public LocalServerClient(ApplicationPacketHandler handler, float serverTickInterval)
 		{
 			_endpoint = _endPointCounter++;
 			_pkt_handler = handler;
+            _serverTickInterval = serverTickInterval;
 		}
 
 		public bool Connect(IGameInstServer server, string playerId)
@@ -32,7 +35,10 @@ namespace Cube
 			_server = server;
 
             bool succ = _server.ConnectPlayerStream(playerId, _player, delegate(netki.Packet packet) {
-				_queue.Add(packet);
+                lock (this)
+                {
+    				_queue.Add(packet);
+                }
 			});
 
 			if (!succ)
@@ -41,7 +47,10 @@ namespace Cube
 			}
 
 			_server.ConnectPlayerDatagram(playerId, _endpoint, delegate(netki.Packet packet) {
-				_queue.Add(packet);
+                lock (this)
+                {
+    				_queue.Add(packet);
+                }
 			});
 
 			return true;
@@ -49,7 +58,19 @@ namespace Cube
 
 		public void Update(float deltaTime)
 		{
-			_server.Update(deltaTime);
+            if (_serverTickInterval == 0)
+            {
+                _server.Update(deltaTime);
+            }
+            else
+            {
+                _serverTickAccum += deltaTime;
+                while (_serverTickAccum > _serverTickInterval)
+                {
+                    _server.Update(_serverTickInterval);
+                    _serverTickAccum -= _serverTickInterval;
+                }
+            }
 		}
 
 		public netki.Packet[] ReadPackets()
