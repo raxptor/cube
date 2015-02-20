@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using System.Net;
 using System;
 
-namespace CCGMMO
+namespace Cube
 {
 	public interface IGameSpawner
 	{
@@ -44,7 +44,6 @@ namespace CCGMMO
 		private PacketExchangeDelegate _packet_target;
 		netki.ConnectionOutput _output;
 		private IGameInstServer _server;
-		private string _server_id;
 
 		public PlayerConnection(Node node, netki.ConnectionOutput output)
 		{
@@ -85,7 +84,6 @@ namespace CCGMMO
 							if (r != null)
 							{
 								_server = r.server;
-								_server_id = r.id;
 							}
 						}
 					}
@@ -218,8 +216,17 @@ namespace CCGMMO
 							_dgram_serv.Send(buf.buf, 0, buf.bufsize, endpoint);
 
 							record.Server.ConnectPlayerDatagram(record.PlayerId, endpoint, delegate(netki.Packet packet) {
-								netki.Bitstream.Buffer bd = _app_packet_handler.MakePacket(packet);
-								_dgram_serv.Send(bd.buf, 0, bd.bufsize, endpoint);
+                                if (packet.type_id == netki.GameNodeRawDatagramWrapper.TYPE_ID)
+                                {
+                                    // Attach 2 byte header where first is 0xfe for raw packet.
+                                    netki.GameNodeRawDatagramWrapper wrap = (netki.GameNodeRawDatagramWrapper) packet;
+                                    _dgram_serv.Send(wrap.Data, wrap.Offset, wrap.Length, endpoint);
+                                }
+                                else
+                                {
+    								netki.Bitstream.Buffer bd = _app_packet_handler.MakePacket(packet);
+    								_dgram_serv.Send(bd.buf, 0, bd.bufsize, endpoint);
+                                }
 							});
 						}
 					}
@@ -444,7 +451,7 @@ namespace CCGMMO
 						{
 							foreach (GameInstRecord r in _instances)
 							{
-								if (r.server.CanPlayerConnect(req.PlayerId))
+								if (r.server.CanPlayerReconnect(req.PlayerId))
 									gameIds.Add(r.id);
 							}
 						}

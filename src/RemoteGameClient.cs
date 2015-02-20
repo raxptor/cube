@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
 
-namespace CCGMMO
+namespace Cube
 {
 	public class RemoteGameClient : IGameInstClient
 	{
@@ -56,13 +56,21 @@ namespace CCGMMO
 			{
 				try
 				{
-					netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(packet);
-					if (!reliable)
-					{
+					if (packet.type_id == netki.GameNodeRawDatagramWrapper.TYPE_ID)
+                    {
+                        netki.GameNodeRawDatagramWrapper wrap = (netki.GameNodeRawDatagramWrapper) packet;
 						if (_udp_socket != null)
-							_udp_socket.Send(buf.buf, 0, buf.bufsize, 0);
+                            _udp_socket.Send(wrap.Data, wrap.Offset, wrap.Length, 0);
+                        return;
 					}
-					if (_socket != null)
+
+                    netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(packet);
+                    if (!reliable)
+                    {
+                        if (_udp_socket != null)
+                            _udp_socket.Send(buf.buf, 0, buf.bufsize, 0);
+                    }
+                    else if (_socket != null)
 					{
 						_socket.Send(buf.buf, 0, buf.bufsize, 0);
 					}
@@ -103,20 +111,13 @@ namespace CCGMMO
 			}
 			else if (_udp_socket != null)
 			{
-				// This is normal operation.
-				netki.DecodedPacket dp;
-				int ret = _pkg_handler.Decode(_udp_buf, 0, bytes, out dp);
-				if (ret == bytes)
-				{
-					lock (this)
-					{
-						_packets.Add(dp.packet);
-					}
-				}
-				else
-				{
-					Console.WriteLine("Got bad packet with bytes " + bytes);
-				}
+                // Receive as a wrapper.
+                netki.GameNodeRawDatagramWrapper wrap = new netki.GameNodeRawDatagramWrapper();
+                wrap.Data = new byte[bytes];
+                wrap.Offset = 0;
+                wrap.Length = bytes;
+                Buffer.BlockCopy(_udp_buf, 0, wrap.Data, 0, bytes);
+				_packets.Add(wrap);
 			}
 
 			s.BeginReceiveFrom(_udp_buf, 0, _udp_buf.Length, 0, ref _udp_remote, OnUdpData, s);
@@ -203,8 +204,6 @@ namespace CCGMMO
 
 				netki.BufferedPacketDecoder dec = new netki.BufferedPacketDecoder(65536, _pkg_handler);
 
-				Socket udpSocket;
-
 				while (true)
 				{
 					byte[] readBuf = new byte[65536];
@@ -213,8 +212,7 @@ namespace CCGMMO
 					lock (this)
 					{
 						if (read <= 0)
-							_status = GameClientStatus.DISCONNECTED;
-					
+							_status = GameClientStatus.DISCONNECTED;		
 
 						dec.OnStreamData(readBuf, 0, read, delegate(netki.DecodedPacket packet) {
 
@@ -259,7 +257,7 @@ namespace CCGMMO
 				}
 				socket.Close();
 			}
-			catch (SocketException e)
+			catch (SocketException)
 			{
 			}
 

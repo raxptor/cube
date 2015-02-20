@@ -1,6 +1,6 @@
 using System;
 
-namespace CCGMMO
+namespace Cube
 {
 	public delegate void PacketExchangeDelegate(netki.Packet packet);
 	public delegate byte[] PacketEncodeDelegate(netki.Packet packet);
@@ -14,7 +14,7 @@ namespace CCGMMO
 	// 
 	public interface IGameInstServer
 	{
-		bool CanPlayerConnect(string playerId);
+		bool CanPlayerReconnect(string playerId);
 		bool ConnectPlayerStream(string playerId, GameInstPlayer player, PacketExchangeDelegate _send_to_me);
 		void ConnectPlayerDatagram(string playerId, ulong endpoint, PacketExchangeDelegate _send_to_me);
 		bool OnDatagram(byte[] datagram, int offset, int length, ulong endpoint);

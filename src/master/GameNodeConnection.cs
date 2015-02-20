@@ -2,7 +2,7 @@
 using System.Threading;
 using System;
 
-namespace CCGMMO
+namespace Cube
 {
 	public class GameNodeConnection : netki.StreamConnection
 	{

@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Collections.Generic;
 
-namespace CCGMMO
+namespace Cube
 {
 	public class MasterClient
 	{
@@ -214,9 +214,9 @@ namespace CCGMMO
 
 				socket.Close();
 			}
-			catch (SocketException e)
+			catch (SocketException)
 			{
-				throw;
+
 			}
 
 			lock (_requests)

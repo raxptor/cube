@@ -2,7 +2,7 @@
 using System.Threading;
 using System;
 
-namespace CCGMMO
+namespace Cube
 {
 	public class GameClientConnection : netki.StreamConnection
 	{
@@ -92,10 +92,8 @@ namespace CCGMMO
 					}
 					break;
 			}
-			netki.Bitstream.Buffer buf = netki.Bitstream.Buffer.Make(new byte[1024]);
-			netki.Bitstream.PutBits(buf, 16, (uint) packet.type_id);
-			netki.CCGMMMOPackets.Encode(packet, buf);
-			buf.Flip();
+
+            netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(packet);;
 			_output.Send(buf.buf, 0, buf.bufsize);
 		}
 

@@ -43,7 +43,7 @@ GameNodeGamesList @netki
 
 GameNodePing @netki
 {
-	int Time
+	uint Time
 	bool SendGamesList
 }
 

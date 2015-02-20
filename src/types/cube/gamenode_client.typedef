@@ -31,3 +31,12 @@ GameNodeUnreliableAuthResponse @netki
 	u32 AuthId
 	u32 Time
 }
+
+// these are handled specially internally
+// and never serialized and sent as is
+GameNodeRawDatagramWrapper @netki
+{
+	byte[] Data
+	int Offset
+	int Length
+}

@@ -4,14 +4,14 @@ using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
 
-namespace CCGMMO
+namespace Cube
 {
 	public class LocalServerClient : IGameInstClient
 	{
 		private IGameInstServer _server;
 		private GameInstPlayer _player;
 		private ApplicationPacketHandler _pkt_handler;
-		private List<netki.Packet> _queue =new List<netki.Packet>();
+		private List<netki.Packet> _queue = new List<netki.Packet>();
 		ulong _endpoint;
 		static uint _endPointCounter = 0;
 
@@ -30,7 +30,8 @@ namespace CCGMMO
 			_player = new GameInstPlayer();
 			_player.name = playerId;
 			_server = server;
-			bool succ = _server.ConnectPlayerStream(playerId, _player, delegate(netki.Packet packet) {
+
+            bool succ = _server.ConnectPlayerStream(playerId, _player, delegate(netki.Packet packet) {
 				_queue.Add(packet);
 			});
 
@@ -74,8 +75,17 @@ namespace CCGMMO
 			}
 			else
 			{
-				netki.Bitstream.Buffer buf = _pkt_handler.MakePacket(packet);
-				_server.OnDatagram(buf.buf, 0, buf.bufsize, _endpoint);
+                if (packet.type_id == netki.GameNodeRawDatagramWrapper.TYPE_ID)
+                {
+                    // These do not actually go on the wire here so they are not in need of any packaging.
+                    netki.GameNodeRawDatagramWrapper wrap = (netki.GameNodeRawDatagramWrapper)packet;
+                    _server.OnDatagram(wrap.Data, 0, wrap.Length, _endpoint);
+                }
+                else
+                {
+                    netki.Bitstream.Buffer buf = _pkt_handler.MakePacket(packet);
+                    _server.OnDatagram(buf.buf, 0, buf.bufsize, _endpoint);
+                }
 			}
 		}	
 	}

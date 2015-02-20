@@ -1,4 +1,4 @@
-namespace CCGMMO
+namespace Cube
 {
 	public interface ApplicationPacketHandler : netki.PacketDecoder
 	{
