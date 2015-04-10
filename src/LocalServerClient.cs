@@ -58,7 +58,7 @@ namespace Cube
 
 		public void Update(float deltaTime)
 		{
-            if (_serverTickInterval == 0)
+            if (_serverTickInterval <= 0)
             {
                 _server.Update(deltaTime);
             }
