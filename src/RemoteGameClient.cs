@@ -27,10 +27,16 @@ namespace Cube
 			_thr.Start();
 		}
 
+		private static netki.Packet[] s_Empty = new netki.Packet[0] { };
+
 		public netki.Packet[] ReadPackets()
 		{
 			lock(this)
 			{
+				if (_packets.Count == 0)
+				{
+					return s_Empty;
+				}
 				netki.Packet[] pkts = _packets.ToArray();
 				_packets.Clear();
 				return pkts;

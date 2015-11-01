@@ -157,7 +157,17 @@ namespace Cube
 			}
 		}
 
-		public void Run()
+		public void Done()
+		{
+			// hax to trigger response etc.
+			AnonymousAuth("");
+			lock (this)
+			{
+				_status = Status.DONE;
+			}
+		}
+
+		private void Run()
 		{
 			lock (this)
 			{

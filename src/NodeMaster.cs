@@ -286,6 +286,8 @@ namespace Cube
 
 				foreach (NodeRecord nr in _instances.Values)
 				{
+					Console.WriteLine("Node canditate " + nr.Connection + " " + nr.Info.Games.IsDynamic + " " + nr.Info.Games.Used
+						+ " " + nr.PendingCreateRequests + " " + nr.Info.Games.MaxLimit);
 					if (nr.Connection == null)
 						continue;
 					if (!nr.Info.Games.IsDynamic)
@@ -306,9 +308,11 @@ namespace Cube
 					Console.WriteLine("There are no nodes left for spawning!");
 					return false;
 				}
-
+					
 				Random r = new Random();
 				int pick = r.Next() % candidates.Count;
+
+				Console.WriteLine("Picked for create:" + pick);
 
 				// Temp bump this number.
 				candidates[pick].PendingCreateRequests++;
@@ -515,6 +519,9 @@ namespace Cube
 			{
 				foreach (NodeRecord nr in _instances.Values)
 				{
+					if (nr.Connection == null)
+						continue;
+					
 					foreach (netki.GameNodeGameInfo gi in nr.Info.Games.Games)
 					{
 						Console.WriteLine(gi.Id + " PlayerSlotsLeft=" + gi.Status.PlayerSlotsLeft + " joinable=" + gi.JoinableByName);

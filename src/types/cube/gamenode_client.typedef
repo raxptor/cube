@@ -32,6 +32,11 @@ GameNodeUnreliableAuthResponse @netki
 	u32 Time
 }
 
+GameNodeTimeeSync @netki
+{
+	float Time
+}
+
 // these are handled specially internally
 // and never serialized and sent as is
 GameNodeRawDatagramWrapper @netki

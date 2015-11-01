@@ -95,7 +95,6 @@ namespace Cube
 						break;
 					}
 			}
-			Console.WriteLine("got player packet id " + pkt.type_id);
 		}
 
 		public void OnStreamData(byte[] data, int offset, int length)
@@ -139,11 +138,16 @@ namespace Cube
 		int _port;
 		int _updateRate;
 
-		public Node(IGameSpawner spawner, ApplicationPacketHandler handler, string id, int maxInstances, int updateRateMs)
+		string _masterAddress;
+		string _myAddress;
+
+		public Node(IGameSpawner spawner, ApplicationPacketHandler handler, string id, int maxInstances, int updateRateMs, string masterAddress, string myAddress)
 		{
 			_player_serv = new netki.PacketStreamServer(new PlayerConnectionHandler(this));
 			_dgram_serv = new netki.PacketDatagramServer(OnDatagram);
 			_app_packet_handler = handler;
+			_masterAddress = masterAddress;
+			_myAddress = myAddress;
 			_masterThread = new Thread(MasterThread);
 			_updateThread = new Thread(UpdateThread);
 			_spawner = spawner;
@@ -169,7 +173,7 @@ namespace Cube
 		}
 
 		// Called from one worker thread only.
-		public void OnDatagram(byte[] data, ulong endpoint)
+		public void OnDatagram(byte[] data, uint bytes, ulong endpoint)
 		{
 			if (++_playerDatagramCleanup > 2048)
 			{
@@ -178,14 +182,13 @@ namespace Cube
 
 			netki.Bitstream.Buffer b = new netki.Bitstream.Buffer();
 			b.buf = data;
-			b.bufsize = data.Length;
+			b.bufsize = (int)bytes;
 			int pkt_id = (int)netki.Bitstream.ReadBits(b, 16);
 
-			if (_playerDatagrams.ContainsKey(endpoint))
+			if (_playerDatagrams.ContainsKey(endpoint) && pkt_id != 0xffff)
 			{
 				// initialization messages
-				if (pkt_id != 0xffff)
-					_playerDatagrams[endpoint].OnDatagram(data, 0, data.Length, endpoint);
+				_playerDatagrams[endpoint].OnDatagram(data, 0, (int)bytes, endpoint);
 			}
 			else
 			{
@@ -205,6 +208,8 @@ namespace Cube
 								if (record.Key[i] != auth.Key[i])
 									return;
 							}
+
+							Console.WriteLine("Upd auth from " + record.PlayerId);
 								
 							netki.GameNodeUnreliableAuthResponse resp = new netki.GameNodeUnreliableAuthResponse();
 							resp.AuthId = auth.AuthId;
@@ -228,6 +233,8 @@ namespace Cube
     								_dgram_serv.Send(bd.buf, 0, bd.bufsize, endpoint);
                                 }
 							});
+
+							_playerDatagrams[endpoint] = record.Server;
 						}
 					}
 				}
@@ -568,10 +575,9 @@ namespace Cube
 
 		private void MasterThread()
 		{
-			string addr = "localhost";
 			while (true)
 			{
-				IPHostEntry ipHostInfo = Dns.GetHostEntry(addr);
+				IPHostEntry ipHostInfo = Dns.GetHostEntry(_masterAddress);
 				IPAddress ipAddress = ipHostInfo.AddressList[0];
 				IPEndPoint remoteEP = new IPEndPoint(ipAddress, NodeMaster.DEFAULT_NODE_PORT);
 				Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -586,7 +592,7 @@ namespace Cube
 					netki.GameNodeInfo info = new netki.GameNodeInfo();
 					info.Games = MakeGamesList();
 					info.NodeId = _id;
-					info.NodeAddress = "localhost:" + _port;
+					info.NodeAddress = _myAddress + ":" + _port;
 					netki.Bitstream.Buffer buf = _app_packet_handler.MakePacket(info);
 					socket.Send(buf.buf, 0, buf.bufsize, 0);
 
