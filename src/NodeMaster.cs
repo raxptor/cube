@@ -588,7 +588,7 @@ namespace Cube
 					}
 					toPing = 0;
 				}
-				Thread.Sleep(50);
+				Thread.Sleep(100);
 
 				// clean up
 				lock (_response_redir)
@@ -620,7 +620,7 @@ namespace Cube
 							if (req.TicksWaited == 0)
 								OneMoreTime = true;
 
-							const int TickLimit = 20;
+							const int TickLimit = 100; // 10 seconds.
 							if (req.TicksWaited > TickLimit || ProcessRequest(req))
 							{
 								if (req.TicksWaited > TickLimit)
