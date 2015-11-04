@@ -209,7 +209,11 @@ namespace Cube
 									return;
 							}
 
-							Console.WriteLine("Upd auth from " + record.PlayerId);
+							_udpAuthorization.Remove(auth.AuthId);
+
+							ulong port = (endpoint >> 32);
+
+							Console.WriteLine("Upd auth from " + record.PlayerId + " (" + port + ")");
 								
 							netki.GameNodeUnreliableAuthResponse resp = new netki.GameNodeUnreliableAuthResponse();
 							resp.AuthId = auth.AuthId;
@@ -343,7 +347,7 @@ namespace Cube
 						_udpAuthorization.Add(id, ua);
 					}
 					netki.GameNodeSetupUnreliable setup = new netki.GameNodeSetupUnreliable();
-					setup.Host = _dgram_serv.GetHost();
+					setup.Host = _myAddress;
 					setup.Port = (uint) _dgram_serv.GetPort();
 					setup.AuthId = id;
 					setup.Key = ua.Key;
