@@ -620,7 +620,7 @@ namespace Cube
 							if (req.TicksWaited == 0)
 								OneMoreTime = true;
 
-							const int TickLimit = 100; // 10 seconds.
+							const int TickLimit = 20; // 10 seconds.
 							if (req.TicksWaited > TickLimit || ProcessRequest(req))
 							{
 								if (req.TicksWaited > TickLimit)

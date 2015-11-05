@@ -123,7 +123,10 @@ namespace Cube
                 wrap.Offset = 0;
                 wrap.Length = bytes;
                 Buffer.BlockCopy(_udp_buf, 0, wrap.Data, 0, bytes);
-				_packets.Add(wrap);
+				lock (this)
+				{
+					_packets.Add(wrap);
+				}
 			}
 
 			s.BeginReceiveFrom(_udp_buf, 0, _udp_buf.Length, 0, ref _udp_remote, OnUdpData, s);

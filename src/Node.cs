@@ -572,7 +572,10 @@ namespace Cube
 				TimeSpan ts = (next -now);
 				if (ts.TotalMilliseconds > 0)
 				{
+					DateTime prev = DateTime.Now;
 					Thread.Sleep((int)(ts.TotalMilliseconds + 1));
+					if ((DateTime.Now - prev).TotalMilliseconds > 100)
+						Console.WriteLine("sleep for " + ts.TotalMilliseconds + " => " + (DateTime.Now - prev).TotalMilliseconds);
 				}
 			}
 		}
