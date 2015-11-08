@@ -172,6 +172,65 @@ namespace Cube
 			return _app_packet_handler;
 		}
 
+		private void ConnectToEndpoint(IGameInstServer server, string playerId, ulong endpoint)
+		{
+			PacketExchangeDelegate del = delegate(netki.Packet packet) {
+				if (packet.type_id == netki.GameNodeRawDatagramWrapper.TYPE_ID)
+				{
+					// Attach 2 byte header where first is 0xfe for raw packet.
+					netki.GameNodeRawDatagramWrapper wrap = (netki.GameNodeRawDatagramWrapper) packet;
+					_dgram_serv.Send(wrap.Data, wrap.Offset, wrap.Length, endpoint);
+				}
+				else
+				{
+					netki.Bitstream.Buffer bd = _app_packet_handler.MakePacket(packet);
+					_dgram_serv.Send(bd.buf, 0, bd.bufsize, endpoint);
+				}
+			};
+
+			server.ConnectPlayerDatagram(playerId, endpoint, del);
+				
+		}
+
+		public void DoUDPAuth(netki.GameNodeUnreliableAuth auth, ulong endpoint)
+		{
+			UDPAuthorization record;
+
+			lock (_udpAuthorization)
+			{
+				if (!_udpAuthorization.TryGetValue(auth.AuthId, out record))
+					return;
+				
+				if (record.Key.Length != auth.Key.Length)
+					return;
+
+				for (int i = 0; i < record.Key.Length; i++)
+				{
+					if (record.Key[i] != auth.Key[i])
+						return;
+				}
+
+				_udpAuthorization.Remove(auth.AuthId);
+			}
+
+			ulong port = (endpoint >> 32);
+
+			Console.WriteLine("Upd auth from " + record.PlayerId + " (" + port + ")");
+
+			netki.GameNodeUnreliableAuthResponse resp = new netki.GameNodeUnreliableAuthResponse();
+			resp.AuthId = auth.AuthId;
+			resp.Time = auth.Time;
+			netki.Bitstream.Buffer buf = netki.Bitstream.Buffer.Make(new byte[1024]);
+			netki.Bitstream.PutBits(buf, 16, 0xffff);
+			netki.GameNodeUnreliableAuthResponse.WriteIntoBitstream(buf, resp);
+			buf.Flip();
+			_dgram_serv.Send(buf.buf, 0, buf.bufsize, endpoint);
+
+			ConnectToEndpoint(record.Server, record.PlayerId, endpoint);
+
+			_playerDatagrams[endpoint] = record.Server;
+		}
+
 		// Called from one worker thread only.
 		public void OnDatagram(byte[] data, uint bytes, ulong endpoint)
 		{
@@ -195,52 +254,7 @@ namespace Cube
 				netki.GameNodeUnreliableAuth auth = new netki.GameNodeUnreliableAuth();
 				if (netki.GameNodeUnreliableAuth.ReadFromBitstream(b, auth))
 				{
-					lock (_udpAuthorization)
-					{
-						if (_udpAuthorization.ContainsKey(auth.AuthId))
-						{
-							UDPAuthorization record = (UDPAuthorization) _udpAuthorization[auth.AuthId];
-							if (record.Key.Length != auth.Key.Length)
-								return;
-
-							for (int i = 0; i < record.Key.Length; i++)
-							{
-								if (record.Key[i] != auth.Key[i])
-									return;
-							}
-
-							_udpAuthorization.Remove(auth.AuthId);
-
-							ulong port = (endpoint >> 32);
-
-							Console.WriteLine("Upd auth from " + record.PlayerId + " (" + port + ")");
-								
-							netki.GameNodeUnreliableAuthResponse resp = new netki.GameNodeUnreliableAuthResponse();
-							resp.AuthId = auth.AuthId;
-							resp.Time = auth.Time;
-							netki.Bitstream.Buffer buf = netki.Bitstream.Buffer.Make(new byte[1024]);
-							netki.Bitstream.PutBits(buf, 16, 0xffff);
-							netki.GameNodeUnreliableAuthResponse.WriteIntoBitstream(buf, resp);
-							buf.Flip();
-							_dgram_serv.Send(buf.buf, 0, buf.bufsize, endpoint);
-
-							record.Server.ConnectPlayerDatagram(record.PlayerId, endpoint, delegate(netki.Packet packet) {
-                                if (packet.type_id == netki.GameNodeRawDatagramWrapper.TYPE_ID)
-                                {
-                                    // Attach 2 byte header where first is 0xfe for raw packet.
-                                    netki.GameNodeRawDatagramWrapper wrap = (netki.GameNodeRawDatagramWrapper) packet;
-                                    _dgram_serv.Send(wrap.Data, wrap.Offset, wrap.Length, endpoint);
-                                }
-                                else
-                                {
-    								netki.Bitstream.Buffer bd = _app_packet_handler.MakePacket(packet);
-    								_dgram_serv.Send(bd.buf, 0, bd.bufsize, endpoint);
-                                }
-							});
-
-							_playerDatagrams[endpoint] = record.Server;
-						}
-					}
+					DoUDPAuth(auth, endpoint);
 				}
 			}
 		}
@@ -571,11 +585,13 @@ namespace Cube
 
 				TimeSpan ts = (next -now);
 				if (ts.TotalMilliseconds > 0)
-				{
+				{/*
 					DateTime prev = DateTime.Now;
 					Thread.Sleep((int)(ts.TotalMilliseconds + 1));
 					if ((DateTime.Now - prev).TotalMilliseconds > 100)
 						Console.WriteLine("sleep for " + ts.TotalMilliseconds + " => " + (DateTime.Now - prev).TotalMilliseconds);
+*/
+					Thread.Sleep(0);
 				}
 			}
 		}
@@ -592,7 +608,7 @@ namespace Cube
 				// Connect the socket to the remote endpoint. Catch any errors.
 				try
 				{
-					Console.WriteLine("[node] - connecting to master");
+					Console.WriteLine("[node] - connecting to master " + _masterAddress);
 					socket.Connect(remoteEP);
 
 					Console.WriteLine("[node] - sending id packet");
