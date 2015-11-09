@@ -44,7 +44,7 @@ namespace Cube
 					{
 						netki.MasterAuthenticateAnonymous anon = (netki.MasterAuthenticateAnonymous)pkt.packet;
 						Console.WriteLine("Doing anonymous authentication [" + anon.Playername + "]");
-						_id = "anon:" + anon.Playername;
+						_id = "[" + anon.Playername +"]";
 						break;
 					}
 				default:
