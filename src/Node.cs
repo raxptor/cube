@@ -135,7 +135,6 @@ namespace Cube
 		bool _isDynamic;
 		int _maxInstances;
 		int _idCounter;
-		int _port;
 		int _updateRate;
 
 		string _masterAddress;
@@ -158,8 +157,6 @@ namespace Cube
 			_updateRate = updateRateMs;
 			_updateThread.Start();
 		}
-
-		public static int bPort = 0;
 
 		public static uint _udpAuthKeyCounter = 1234;
 		Dictionary<ulong, UDPAuthorization> _udpAuthorization = new Dictionary<ulong, UDPAuthorization>();
@@ -261,10 +258,8 @@ namespace Cube
 
 		public void Start()
 		{
-			_port = 9000 + bPort;
-			_player_serv.Start(_port);
-			_dgram_serv.Start(_port);
-			bPort++;
+			_player_serv.Start(0);
+			_dgram_serv.Start(0);
 			_masterThread.Start();
 		}
 
@@ -585,8 +580,10 @@ namespace Cube
 
 				TimeSpan ts = (next -now);
 				if (ts.TotalMilliseconds > 0)
-				{/*
+				{
+/*
 					DateTime prev = DateTime.Now;
+					Console.WriteLine(" i will sleep (" + (int)(ts.TotalMilliseconds + 1) + ")");
 					Thread.Sleep((int)(ts.TotalMilliseconds + 1));
 					if ((DateTime.Now - prev).TotalMilliseconds > 100)
 						Console.WriteLine("sleep for " + ts.TotalMilliseconds + " => " + (DateTime.Now - prev).TotalMilliseconds);
@@ -615,7 +612,7 @@ namespace Cube
 					netki.GameNodeInfo info = new netki.GameNodeInfo();
 					info.Games = MakeGamesList();
 					info.NodeId = _id;
-					info.NodeAddress = _myAddress + ":" + _port;
+					info.NodeAddress = _myAddress + ":" + _player_serv.GetPort();
 					netki.Bitstream.Buffer buf = _app_packet_handler.MakePacket(info);
 					socket.Send(buf.buf, 0, buf.bufsize, 0);
 
