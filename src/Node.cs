@@ -140,13 +140,16 @@ namespace Cube
 		string _masterAddress;
 		string _myAddress;
 
-		public Node(IGameSpawner spawner, ApplicationPacketHandler handler, string id, int maxInstances, int updateRateMs, string masterAddress, string myAddress)
+		string[] _configurations;
+
+		public Node(IGameSpawner spawner, ApplicationPacketHandler handler, string id, string[] configurations, int maxInstances, int updateRateMs, string masterAddress, string myAddress)
 		{
 			_player_serv = new netki.PacketStreamServer(new PlayerConnectionHandler(this));
 			_dgram_serv = new netki.PacketDatagramServer(OnDatagram);
 			_app_packet_handler = handler;
 			_masterAddress = masterAddress;
 			_myAddress = myAddress;
+			_configurations = configurations;
 			_masterThread = new Thread(MasterThread);
 			_updateThread = new Thread(UpdateThread);
 			_spawner = spawner;
@@ -581,14 +584,11 @@ namespace Cube
 				TimeSpan ts = (next -now);
 				if (ts.TotalMilliseconds > 0)
 				{
-/*
 					DateTime prev = DateTime.Now;
-					Console.WriteLine(" i will sleep (" + (int)(ts.TotalMilliseconds + 1) + ")");
-					Thread.Sleep((int)(ts.TotalMilliseconds + 1));
+//					Thread.Sleep((int)(ts.TotalMilliseconds + 1));
+					Thread.Sleep(0);
 					if ((DateTime.Now - prev).TotalMilliseconds > 100)
 						Console.WriteLine("sleep for " + ts.TotalMilliseconds + " => " + (DateTime.Now - prev).TotalMilliseconds);
-*/
-					Thread.Sleep(0);
 				}
 			}
 		}
@@ -623,6 +623,10 @@ namespace Cube
 						netki.Bitstream.Buffer b = _app_packet_handler.MakePacket(p);
 						socket.Send(b.buf, 0, b.bufsize, 0);
 					};
+
+					netki.GameNodeConfigurationsSupport conf = new netki.GameNodeConfigurationsSupport();
+					conf.Patterns = _configurations;
+					xchange(conf);
 
 					while (true)
 					{

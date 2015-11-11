@@ -12,6 +12,11 @@ GameNodeGameStatus @netki
 	u32 SpectatorSlotsLeft
 }
 
+GameNodeConfigurationsSupport @netki
+{
+	string[] Patterns
+}
+
 GameNodeGameInfo @netki
 {
 	string Id

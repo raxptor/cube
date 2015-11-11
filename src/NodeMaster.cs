@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
+using System.Text.RegularExpressions;
 using System;
 
 namespace Cube
@@ -16,6 +17,7 @@ namespace Cube
 			public netki.GameNodeInfo Info;
 			public int PendingCreateRequests;
 			public float Lag;
+			public string[] AcceptedConfigurations;
 		}
 
 		public class RequestEntry
@@ -142,11 +144,23 @@ namespace Cube
 						netki.GameNodePing ping = (netki.GameNodePing) p;
 						lock (_instances)
 						{
-							if (!_instances.ContainsKey(nodeId))
-								return;
-
-							uint diff = ((uint)DateTime.UtcNow.Ticks) - ping.Time;
-							_instances[nodeId].Lag = (int)diff / 10000.0f; 
+							NodeRecord node;
+							if (_instances.TryGetValue(nodeId, out node))
+							{	
+								uint diff = ((uint)DateTime.UtcNow.Ticks) - ping.Time;
+								node.Lag = (int)diff / 10000.0f;
+							}
+						}
+						return;
+					}
+				case netki.GameNodeConfigurationsSupport.TYPE_ID:
+					{
+						netki.GameNodeConfigurationsSupport support = (netki.GameNodeConfigurationsSupport)p;
+						lock (_instances)
+						{
+							NodeRecord node;
+							if (_instances.TryGetValue(nodeId, out node))
+								node.AcceptedConfigurations = support.Patterns;
 						}
 						return;
 					}
@@ -184,16 +198,27 @@ namespace Cube
 				case netki.GameNodeGamesList.TYPE_ID:
 					{
 						netki.GameNodeGamesList list = (netki.GameNodeGamesList) p;
+						string[] configs = null;
+
 						lock (_instances)
 						{
-							if (!_instances.ContainsKey(nodeId))
-								return;
-							_instances[nodeId].Info.Games = list;
+							NodeRecord nr;
+							if (_instances.TryGetValue(nodeId, out nr))
+							{
+								nr.Info.Games = list;
+								configs = nr.AcceptedConfigurations;
+							}
 						}
-						Console.WriteLine("Games on node [" + nodeId + "] (lag:" + _instances[nodeId].Lag + " ms)");
+
+						Console.WriteLine("Node ping response [" + nodeId + "] (lag:" + _instances[nodeId].Lag + " ms)");
 						for (int i=0;i<list.Games.Length;i++)
 						{
-							Console.WriteLine("[master] @" + nodeId + " game" + i + "/" + list.MaxLimit + " [" + list.Games[i].Id + ":" + list.Games[i].Configuration + ":" + list.Games[i].Info + "] SlotsLeft=" + list.Games[i].Status.PlayerSlotsLeft + " Playres=" + list.Games[i].Status.PlayersJoined + " Rejoin=" + list.Games[i].RejoinPlayers.Length);
+							Console.WriteLine("    " + nodeId + ": game" + i + "/" + list.MaxLimit + " [" + list.Games[i].Id + ":" + list.Games[i].Configuration + ":" + list.Games[i].Info + "] SlotsLeft=" + list.Games[i].Status.PlayerSlotsLeft + " Players=" + list.Games[i].Status.PlayersJoined + " Rejoin=" + list.Games[i].RejoinPlayers.Length);
+						}
+						if (configs != null)
+						{
+							foreach (string s in configs)
+								Console.WriteLine("    " + nodeId + " accepts configuration [" + s + "]");
 						}
 
 						Console.WriteLine("--------");
@@ -292,7 +317,23 @@ namespace Cube
 						continue;
 					if (!nr.Info.Games.IsDynamic)
 						continue;
+					if (nr.AcceptedConfigurations == null)
+						continue;
 					if ((nr.Info.Games.Used + nr.PendingCreateRequests) >= nr.Info.Games.MaxLimit)
+						continue;
+					
+					bool match = false;
+					foreach (string pattern in nr.AcceptedConfigurations)
+					{
+						Regex ex = new Regex(pattern);
+						if (ex.IsMatch(Configuration))
+						{
+							match = true;
+							break;
+						}
+					}
+
+					if (!match)
 						continue;
 
 					int score = 0;
