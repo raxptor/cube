@@ -2,8 +2,8 @@ using System;
 
 namespace Cube
 {
-	public delegate void PacketExchangeDelegate(netki.Packet packet);
-	public delegate byte[] PacketEncodeDelegate(netki.Packet packet);
+	public delegate void PacketExchangeDelegate(Netki.Packet packet);
+	public delegate byte[] PacketEncodeDelegate(Netki.Packet packet);
 	public delegate void DatagramExchangeDelegate(byte[] buf, int offset, int length);
 
 	public class GameInstPlayer
@@ -18,13 +18,13 @@ namespace Cube
 		bool ConnectPlayerStream(string playerId, GameInstPlayer player, PacketExchangeDelegate _send_to_me);
 		void ConnectPlayerDatagram(string playerId, ulong endpoint, PacketExchangeDelegate _send_to_me);
 		bool OnDatagram(byte[] datagram, int offset, int length, ulong endpoint);
-		void PacketOnPlayer(GameInstPlayer player, netki.Packet packet);
+		void PacketOnPlayer(GameInstPlayer player, Netki.Packet packet);
 		void DisconnectPlayer(GameInstPlayer player);
 
 		void Update(float deltaTime);
 
 		//
-		netki.GameNodeGameStatus GetStatus();
+		Netki.GameNodeGameStatus GetStatus();
 		bool CanShutdown();
 		string GetVersionString(); // identification string for game/version
 	}
@@ -42,8 +42,8 @@ namespace Cube
 	{
 		GameClientStatus GetStatus();
 		void Update(float deltaTime);
-		void Send(netki.Packet packet, bool reliable);
-		netki.Packet[] ReadPackets();
+		void Send(Netki.Packet packet, bool reliable);
+		Netki.Packet[] ReadPackets();
 	}
 }
 

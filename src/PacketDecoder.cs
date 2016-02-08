@@ -1,7 +1,7 @@
 namespace Cube
 {
-	public interface ApplicationPacketHandler : netki.PacketDecoder
+	public interface ApplicationPacketHandler : Netki.PacketDecoder
 	{
-		 netki.Bitstream.Buffer MakePacket(netki.Packet packet);
+		 Netki.Bitstream.Buffer MakePacket(Netki.Packet packet);
 	}
 }

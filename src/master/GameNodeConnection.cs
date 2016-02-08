@@ -4,17 +4,17 @@ using System;
 
 namespace Cube
 {
-	public class GameNodeConnection : netki.StreamConnection
+	public class GameNodeConnection : Netki.StreamConnection
 	{
-		private netki.ConnectionOutput _output;
-		private netki.BufferedPacketDecoder _decoder;
+		private Netki.ConnectionOutput _output;
+		private Netki.BufferedPacketDecoder _decoder;
 		private NodeMaster _master;
 		private string _id;
 
-		public GameNodeConnection(netki.ConnectionOutput output, NodeMaster master)
+		public GameNodeConnection(Netki.ConnectionOutput output, NodeMaster master)
 		{
 			_output = output;
-			_decoder = new netki.BufferedPacketDecoder(2*65536, master.GetPacketHandler());
+			_decoder = new Netki.BufferedPacketDecoder(2*65536, master.GetPacketHandler());
 			_master = master;
 			_id = null;
 		}
@@ -26,14 +26,14 @@ namespace Cube
 			_master.DisconnectInstance(_id);
 		}
 
-		public void OnPacket(netki.DecodedPacket pkt)
+		public void OnPacket(Netki.DecodedPacket pkt)
 		{
 			if (_id == null)
 			{
 				// only accept
-				if (pkt.type_id == netki.GameNodeInfo.TYPE_ID)
+				if (pkt.type_id == Netki.GameNodeInfo.TYPE_ID)
 				{
-					netki.GameNodeInfo info = (netki.GameNodeInfo)pkt.packet;
+					Netki.GameNodeInfo info = (Netki.GameNodeInfo)pkt.packet;
 					_id = info.NodeId;
 					Console.WriteLine("node: identified as [" + _id + "] with address [" + info.NodeAddress + "]");
 					_master.RegisterInstance(info, this);
@@ -50,9 +50,9 @@ namespace Cube
 			}
 		}
 
-		public void SendPacket(netki.Packet packet)
+		public void SendPacket(Netki.Packet packet)
 		{
-			netki.Bitstream.Buffer buf = _master.GetPacketHandler().MakePacket(packet);
+			Netki.Bitstream.Buffer buf = _master.GetPacketHandler().MakePacket(packet);
 			_output.Send(buf.buf, 0, buf.bufsize);
 		}
 
@@ -62,7 +62,7 @@ namespace Cube
 		}
 	}
 
-	public class NodeConnectionHandler : netki.StreamConnectionHandler
+	public class NodeConnectionHandler : Netki.StreamConnectionHandler
 	{
 		NodeMaster _master;
 
@@ -76,7 +76,7 @@ namespace Cube
 
 		}
 
-		public netki.StreamConnection OnConnected(int connection_id, netki.ConnectionOutput output)
+		public Netki.StreamConnection OnConnected(int connection_id, Netki.ConnectionOutput output)
 		{
 			return new GameNodeConnection(output, _master);
 		}

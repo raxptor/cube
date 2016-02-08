@@ -37,18 +37,18 @@ namespace Cube
 		public DateTime lastActive;
 	}
 
-	public class PlayerConnection : GameInstPlayer, netki.StreamConnection
+	public class PlayerConnection : GameInstPlayer, Netki.StreamConnection
 	{
-		private netki.BufferedPacketDecoder _decoder;
+		private Netki.BufferedPacketDecoder _decoder;
 		private Node _node;
 		private PacketExchangeDelegate _packet_target;
-		netki.ConnectionOutput _output;
+		Netki.ConnectionOutput _output;
 		private IGameInstServer _server;
 
-		public PlayerConnection(Node node, netki.ConnectionOutput output)
+		public PlayerConnection(Node node, Netki.ConnectionOutput output)
 		{
 			_node = node;
-			_decoder = new netki.BufferedPacketDecoder(512, node.GetPacketHandler());
+			_decoder = new Netki.BufferedPacketDecoder(512, node.GetPacketHandler());
 			_output = output;
 		}
 
@@ -65,21 +65,21 @@ namespace Cube
 			}
 		}
 
-		public void Send(netki.Packet packet)
+		public void Send(Netki.Packet packet)
 		{
-			netki.Bitstream.Buffer buf = _node.GetPacketHandler().MakePacket(packet);
+			Netki.Bitstream.Buffer buf = _node.GetPacketHandler().MakePacket(packet);
 			_output.Send(buf.buf, 0, buf.bufsize);
 		}
 
-		public void OnPacket(netki.DecodedPacket pkt)
+		public void OnPacket(Netki.DecodedPacket pkt)
 		{
 			switch (pkt.packet.type_id)
 			{
-				case netki.GameNodeAuth.TYPE_ID:
+				case Netki.GameNodeAuth.TYPE_ID:
 					{
 						if (_server == null)
 						{
-							netki.GameNodeAuth auth = (netki.GameNodeAuth) pkt.packet;
+							Netki.GameNodeAuth auth = (Netki.GameNodeAuth) pkt.packet;
 							GameInstRecord r = _node.DoPlayerAuth(auth, this);
 							if (r != null)
 							{
@@ -103,7 +103,7 @@ namespace Cube
 		}
 	}
 
-	public class PlayerConnectionHandler : netki.StreamConnectionHandler
+	public class PlayerConnectionHandler : Netki.StreamConnectionHandler
 	{
 		private Node _node;
 
@@ -117,7 +117,7 @@ namespace Cube
 
 		}
 
-		public netki.StreamConnection OnConnected(int connection_id, netki.ConnectionOutput output)
+		public Netki.StreamConnection OnConnected(int connection_id, Netki.ConnectionOutput output)
 		{
 			return new PlayerConnection(_node, output);
 		}
@@ -126,8 +126,8 @@ namespace Cube
 	public class Node
 	{
 		ApplicationPacketHandler _app_packet_handler;
-		netki.PacketStreamServer _player_serv;
-		netki.PacketDatagramServer _dgram_serv;
+		Netki.PacketStreamServer _player_serv;
+		Netki.PacketDatagramServer _dgram_serv;
 		List<GameInstRecord> _instances = new List<GameInstRecord>();
 		Thread _masterThread, _updateThread;
 		IGameSpawner _spawner;
@@ -144,8 +144,8 @@ namespace Cube
 
 		public Node(IGameSpawner spawner, ApplicationPacketHandler handler, string id, string[] configurations, int maxInstances, int updateRateMs, string masterAddress, string myAddress)
 		{
-			_player_serv = new netki.PacketStreamServer(new PlayerConnectionHandler(this));
-			_dgram_serv = new netki.PacketDatagramServer(OnDatagram);
+			_player_serv = new Netki.PacketStreamServer(new PlayerConnectionHandler(this));
+			_dgram_serv = new Netki.PacketDatagramServer(OnDatagram);
 			_app_packet_handler = handler;
 			_masterAddress = masterAddress;
 			_myAddress = myAddress;
@@ -174,16 +174,16 @@ namespace Cube
 
 		private void ConnectToEndpoint(IGameInstServer server, string playerId, ulong endpoint)
 		{
-			PacketExchangeDelegate del = delegate(netki.Packet packet) {
-				if (packet.type_id == netki.GameNodeRawDatagramWrapper.TYPE_ID)
+			PacketExchangeDelegate del = delegate(Netki.Packet packet) {
+				if (packet.type_id == Netki.GameNodeRawDatagramWrapper.TYPE_ID)
 				{
 					// Attach 2 byte header where first is 0xfe for raw packet.
-					netki.GameNodeRawDatagramWrapper wrap = (netki.GameNodeRawDatagramWrapper) packet;
+					Netki.GameNodeRawDatagramWrapper wrap = (Netki.GameNodeRawDatagramWrapper) packet;
 					_dgram_serv.Send(wrap.Data, wrap.Offset, wrap.Length, endpoint);
 				}
 				else
 				{
-					netki.Bitstream.Buffer bd = _app_packet_handler.MakePacket(packet);
+					Netki.Bitstream.Buffer bd = _app_packet_handler.MakePacket(packet);
 					_dgram_serv.Send(bd.buf, 0, bd.bufsize, endpoint);
 				}
 			};
@@ -192,7 +192,7 @@ namespace Cube
 				
 		}
 
-		public void DoUDPAuth(netki.GameNodeUnreliableAuth auth, ulong endpoint)
+		public void DoUDPAuth(Netki.GameNodeUnreliableAuth auth, ulong endpoint)
 		{
 			UDPAuthorization record;
 
@@ -217,12 +217,12 @@ namespace Cube
 
 			Console.WriteLine("Upd auth from " + record.PlayerId + " (" + port + ")");
 
-			netki.GameNodeUnreliableAuthResponse resp = new netki.GameNodeUnreliableAuthResponse();
+			Netki.GameNodeUnreliableAuthResponse resp = new Netki.GameNodeUnreliableAuthResponse();
 			resp.AuthId = auth.AuthId;
 			resp.Time = auth.Time;
-			netki.Bitstream.Buffer buf = netki.Bitstream.Buffer.Make(new byte[1024]);
-			netki.Bitstream.PutBits(buf, 16, 0xffff);
-			netki.GameNodeUnreliableAuthResponse.WriteIntoBitstream(buf, resp);
+			Netki.Bitstream.Buffer buf = Netki.Bitstream.Buffer.Make(new byte[1024]);
+			Netki.Bitstream.PutBits(buf, 16, 0xffff);
+			Netki.GameNodeUnreliableAuthResponse.WriteIntoBitstream(buf, resp);
 			buf.Flip();
 			_dgram_serv.Send(buf.buf, 0, buf.bufsize, endpoint);
 
@@ -239,10 +239,10 @@ namespace Cube
 				_playerDatagramCleanup = 0;
 			}
 
-			netki.Bitstream.Buffer b = new netki.Bitstream.Buffer();
+			Netki.Bitstream.Buffer b = new Netki.Bitstream.Buffer();
 			b.buf = data;
 			b.bufsize = (int)bytes;
-			int pkt_id = (int)netki.Bitstream.ReadBits(b, 16);
+			int pkt_id = (int)Netki.Bitstream.ReadBits(b, 16);
 
 			if (_playerDatagrams.ContainsKey(endpoint) && pkt_id != 0xffff)
 			{
@@ -251,8 +251,8 @@ namespace Cube
 			}
 			else
 			{
-				netki.GameNodeUnreliableAuth auth = new netki.GameNodeUnreliableAuth();
-				if (netki.GameNodeUnreliableAuth.ReadFromBitstream(b, auth))
+				Netki.GameNodeUnreliableAuth auth = new Netki.GameNodeUnreliableAuth();
+				if (Netki.GameNodeUnreliableAuth.ReadFromBitstream(b, auth))
 				{
 					DoUDPAuth(auth, endpoint);
 				}
@@ -304,7 +304,7 @@ namespace Cube
 			}
 		}
 
-		public GameInstRecord DoPlayerAuth(netki.GameNodeAuth auth, PlayerConnection conn)
+		public GameInstRecord DoPlayerAuth(Netki.GameNodeAuth auth, PlayerConnection conn)
 		{
 			GameInstRecord server = null;
 			lock (_instances)
@@ -328,17 +328,17 @@ namespace Cube
 				}
 			}
 
-			netki.GameNodeAuthResponse resp = new netki.GameNodeAuthResponse();
+			Netki.GameNodeAuthResponse resp = new Netki.GameNodeAuthResponse();
 
 			if (server != null)
 			{
 				resp.AuthSuccess = true;
 
-				conn.SetPacketTarget(delegate(netki.Packet packet) {
+				conn.SetPacketTarget(delegate(Netki.Packet packet) {
 					server.server.PacketOnPlayer(conn, packet);
 				});
 
-				PacketExchangeDelegate xchange = delegate(netki.Packet p) {
+				PacketExchangeDelegate xchange = delegate(Netki.Packet p) {
 					conn.Send(p);
 				};
 
@@ -358,7 +358,7 @@ namespace Cube
 						id = _udpAuthKeyCounter++;
 						_udpAuthorization.Add(id, ua);
 					}
-					netki.GameNodeSetupUnreliable setup = new netki.GameNodeSetupUnreliable();
+					Netki.GameNodeSetupUnreliable setup = new Netki.GameNodeSetupUnreliable();
 					setup.Host = _myAddress;
 					setup.Port = (uint) _dgram_serv.GetPort();
 					setup.AuthId = id;
@@ -412,20 +412,20 @@ namespace Cube
 			System.GC.Collect();
 		}
 
-		public netki.GameNodeGamesList MakeGamesList()
+		public Netki.GameNodeGamesList MakeGamesList()
 		{
 			lock (this)
 			{
-				netki.GameNodeGamesList list = new netki.GameNodeGamesList();
+				Netki.GameNodeGamesList list = new Netki.GameNodeGamesList();
 				list.IsDynamic =_isDynamic;
 				list.MaxLimit = (uint)_maxInstances;
 				list.Used = (uint)_instances.Count;
-				list.Games = new netki.GameNodeGameInfo[_instances.Count];
+				list.Games = new Netki.GameNodeGameInfo[_instances.Count];
 
 				List<string> rejoinPlayers = new List<string>();
 				for (int i=0;i<_instances.Count;i++)
 				{
-					list.Games[i] = new netki.GameNodeGameInfo();
+					list.Games[i] = new Netki.GameNodeGameInfo();
 					list.Games[i].Configuration = _instances[i].configuration;
 					list.Games[i].Id = _instances[i].id;
 					list.Games[i].Info = _instances[i].info;
@@ -453,22 +453,22 @@ namespace Cube
 			}
 		}
 
-		public void OnMasterPacket(netki.Packet packet, PacketExchangeDelegate exchange)
+		public void OnMasterPacket(Netki.Packet packet, PacketExchangeDelegate exchange)
 		{
 			switch (packet.type_id)
 			{
-				case netki.GameNodePing.TYPE_ID:
+				case Netki.GameNodePing.TYPE_ID:
 					{
 						exchange(packet);
 						RemoveAuthsAndGames();
-						netki.GameNodePing p = (netki.GameNodePing) packet;
+						Netki.GameNodePing p = (Netki.GameNodePing) packet;
 						if (p.SendGamesList)
 							exchange(MakeGamesList());
 						return;
 					}
-				case netki.GameNodeRequestGamesOnPlayer.TYPE_ID:
+				case Netki.GameNodeRequestGamesOnPlayer.TYPE_ID:
 					{
-						netki.GameNodeRequestGamesOnPlayer req = (netki.GameNodeRequestGamesOnPlayer) packet;
+						Netki.GameNodeRequestGamesOnPlayer req = (Netki.GameNodeRequestGamesOnPlayer) packet;
 						List<string> gameIds = new List<string>();
 						lock (_instances)
 						{
@@ -479,7 +479,7 @@ namespace Cube
 							}
 						}
 
-						netki.GameNodePlayerIsOnGames resp = new netki.GameNodePlayerIsOnGames();
+						Netki.GameNodePlayerIsOnGames resp = new Netki.GameNodePlayerIsOnGames();
 						resp.GameIds = gameIds.ToArray();
 						resp.PlayerId = req.PlayerId;
 						resp.RequestId = req.RequestId;
@@ -487,9 +487,9 @@ namespace Cube
 						return;
 					}
 
-				case netki.GameNodeAuthPlayer.TYPE_ID:
+				case Netki.GameNodeAuthPlayer.TYPE_ID:
 					{
-						netki.GameNodeAuthPlayer ap = (netki.GameNodeAuthPlayer) packet;
+						Netki.GameNodeAuthPlayer ap = (Netki.GameNodeAuthPlayer) packet;
 						lock (_instances)
 						{
 							foreach (GameInstRecord r in _instances)
@@ -521,22 +521,22 @@ namespace Cube
 						return;
 					}
 						
-				case netki.GameNodeCreateGameRequest.TYPE_ID:
+				case Netki.GameNodeCreateGameRequest.TYPE_ID:
 					{
-						netki.GameNodeCreateGameRequest req = (netki.GameNodeCreateGameRequest) packet;
+						Netki.GameNodeCreateGameRequest req = (Netki.GameNodeCreateGameRequest) packet;
 
 						lock (this)
 						{
 							if (!_isDynamic || _instances.Count >= _maxInstances)
 							{
-								netki.GameNodeCreateGameResponse resp = new netki.GameNodeCreateGameResponse();
+								Netki.GameNodeCreateGameResponse resp = new Netki.GameNodeCreateGameResponse();
 								exchange(resp);
 								return;
 							}
 						}
 
 						// note that this handles both err and succ
-						netki.GameNodeCreateGameResponse rp = new netki.GameNodeCreateGameResponse();
+						Netki.GameNodeCreateGameResponse rp = new Netki.GameNodeCreateGameResponse();
 						rp.GameId = StartInstance(req.Configuration, "auto");
 						exchange(MakeGamesList());
 						exchange(rp);
@@ -609,22 +609,22 @@ namespace Cube
 					socket.Connect(remoteEP);
 
 					Console.WriteLine("[node] - sending id packet");
-					netki.GameNodeInfo info = new netki.GameNodeInfo();
+					Netki.GameNodeInfo info = new Netki.GameNodeInfo();
 					info.Games = MakeGamesList();
 					info.NodeId = _id;
 					info.NodeAddress = _myAddress + ":" + _player_serv.GetPort();
-					netki.Bitstream.Buffer buf = _app_packet_handler.MakePacket(info);
+					Netki.Bitstream.Buffer buf = _app_packet_handler.MakePacket(info);
 					socket.Send(buf.buf, 0, buf.bufsize, 0);
 
-					netki.BufferedPacketDecoder pdec = new netki.BufferedPacketDecoder(65536, _app_packet_handler);
+					Netki.BufferedPacketDecoder pdec = new Netki.BufferedPacketDecoder(65536, _app_packet_handler);
 					byte[] rbuf = new byte[65536];
 
-					PacketExchangeDelegate xchange = delegate(netki.Packet p) {
-						netki.Bitstream.Buffer b = _app_packet_handler.MakePacket(p);
+					PacketExchangeDelegate xchange = delegate(Netki.Packet p) {
+						Netki.Bitstream.Buffer b = _app_packet_handler.MakePacket(p);
 						socket.Send(b.buf, 0, b.bufsize, 0);
 					};
 
-					netki.GameNodeConfigurationsSupport conf = new netki.GameNodeConfigurationsSupport();
+					Netki.GameNodeConfigurationsSupport conf = new Netki.GameNodeConfigurationsSupport();
 					conf.Patterns = _configurations;
 					xchange(conf);
 
@@ -637,7 +637,7 @@ namespace Cube
 							break;
 						}
 
-						pdec.OnStreamData(rbuf, 0, read, delegate(netki.DecodedPacket packet) {
+						pdec.OnStreamData(rbuf, 0, read, delegate(Netki.DecodedPacket packet) {
 							OnMasterPacket(packet.packet, xchange);
 						});
 					}

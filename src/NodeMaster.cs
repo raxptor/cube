@@ -14,7 +14,7 @@ namespace Cube
 		{
 			public string Address;
 			public GameNodeConnection Connection;
-			public netki.GameNodeInfo Info;
+			public Netki.GameNodeInfo Info;
 			public int PendingCreateRequests;
 			public float Lag;
 			public string[] AcceptedConfigurations;
@@ -22,7 +22,7 @@ namespace Cube
 
 		public class RequestEntry
 		{
-			public netki.Packet Request, OriginalRequest;
+			public Netki.Packet Request, OriginalRequest;
 			public GameClientConnection Connection;
 			public string RequestId;
 			public int TicksWaited;
@@ -42,8 +42,8 @@ namespace Cube
 			public int References;
 		}
 
-		netki.PacketStreamServer _node_serv;
-		netki.PacketStreamServer _client_serv;
+		Netki.PacketStreamServer _node_serv;
+		Netki.PacketStreamServer _client_serv;
 		private ApplicationPacketHandler _app_packet_handler;
 		Dictionary<string, NodeRecord> _instances = new Dictionary<string, NodeRecord>();
 		Dictionary<string, Authorization> _auth = new Dictionary<string, Authorization>();
@@ -63,8 +63,8 @@ namespace Cube
 		public NodeMaster(ApplicationPacketHandler packet_handler)
 		{
 			_app_packet_handler = packet_handler;
-			_node_serv = new netki.PacketStreamServer(new NodeConnectionHandler(this));
-			_client_serv = new netki.PacketStreamServer(new ClientConnectionHandler(this));
+			_node_serv = new Netki.PacketStreamServer(new NodeConnectionHandler(this));
+			_client_serv = new Netki.PacketStreamServer(new ClientConnectionHandler(this));
 			_update_thread = new Thread(UpdateThread);
 		}
 
@@ -99,7 +99,7 @@ namespace Cube
 			_update_thread.Start();
 		}
 
-		public void RegisterInstance(netki.GameNodeInfo info, GameNodeConnection Connection)
+		public void RegisterInstance(Netki.GameNodeInfo info, GameNodeConnection Connection)
 		{
 			lock (_instances)
 			{
@@ -123,7 +123,7 @@ namespace Cube
 		}
 
 		// These will not be more than one per connection.
-		public void OnClientRequest(netki.Packet packet, GameClientConnection conn)
+		public void OnClientRequest(Netki.Packet packet, GameClientConnection conn)
 		{
 			lock (_requests)
 			{
@@ -135,13 +135,13 @@ namespace Cube
 			}
 		}
 
-		public void OnNodePacket(string nodeId, netki.Packet p)
+		public void OnNodePacket(string nodeId, Netki.Packet p)
 		{
 			switch (p.type_id)
 			{
-				case netki.GameNodePing.TYPE_ID:
+				case Netki.GameNodePing.TYPE_ID:
 					{
-						netki.GameNodePing ping = (netki.GameNodePing) p;
+						Netki.GameNodePing ping = (Netki.GameNodePing) p;
 						lock (_instances)
 						{
 							NodeRecord node;
@@ -153,9 +153,9 @@ namespace Cube
 						}
 						return;
 					}
-				case netki.GameNodeConfigurationsSupport.TYPE_ID:
+				case Netki.GameNodeConfigurationsSupport.TYPE_ID:
 					{
-						netki.GameNodeConfigurationsSupport support = (netki.GameNodeConfigurationsSupport)p;
+						Netki.GameNodeConfigurationsSupport support = (Netki.GameNodeConfigurationsSupport)p;
 						lock (_instances)
 						{
 							NodeRecord node;
@@ -164,9 +164,9 @@ namespace Cube
 						}
 						return;
 					}
-				case netki.GameNodePlayerIsOnGames.TYPE_ID:
+				case Netki.GameNodePlayerIsOnGames.TYPE_ID:
 					{
-						netki.GameNodePlayerIsOnGames pkt = (netki.GameNodePlayerIsOnGames) p;
+						Netki.GameNodePlayerIsOnGames pkt = (Netki.GameNodePlayerIsOnGames) p;
 						Console.WriteLine("Response from [" + nodeId + "] player " + pkt.PlayerId + " is on " + pkt.GameIds.Length + " games");
 
 						// clean up junk
@@ -184,7 +184,7 @@ namespace Cube
 							if (_response_redir.ContainsKey(pkt.RequestId))
 							{
 								// transform and forward
-								netki.MasterJoinedGamesResponse resp = new netki.MasterJoinedGamesResponse();
+								Netki.MasterJoinedGamesResponse resp = new Netki.MasterJoinedGamesResponse();
 								resp.GameIds = pkt.GameIds;
 								ResponseRedirectionEntry entry = _response_redir[pkt.RequestId];
 								entry.Where.SendPacket(resp);
@@ -195,9 +195,9 @@ namespace Cube
 						}
 						return;
 					}
-				case netki.GameNodeGamesList.TYPE_ID:
+				case Netki.GameNodeGamesList.TYPE_ID:
 					{
-						netki.GameNodeGamesList list = (netki.GameNodeGamesList) p;
+						Netki.GameNodeGamesList list = (Netki.GameNodeGamesList) p;
 						string[] configs = null;
 
 						lock (_instances)
@@ -224,9 +224,9 @@ namespace Cube
 						Console.WriteLine("--------");
 						return;
 					}
-				case netki.GameNodeCreateGameResponse.TYPE_ID:
+				case Netki.GameNodeCreateGameResponse.TYPE_ID:
 					{
-						netki.GameNodeCreateGameResponse resp = (netki.GameNodeCreateGameResponse) p;
+						Netki.GameNodeCreateGameResponse resp = (Netki.GameNodeCreateGameResponse) p;
 						if (resp.GameId != null)
 						{
 							Console.WriteLine("[master] - node [" + nodeId + "] created requested game [" + resp.GameId + "]");
@@ -246,9 +246,9 @@ namespace Cube
 						}
 						return;
 					}
-				case netki.GameNodeAuthPlayer.TYPE_ID:
+				case Netki.GameNodeAuthPlayer.TYPE_ID:
 					{
-						netki.GameNodeAuthPlayer auth = (netki.GameNodeAuthPlayer) p;
+						Netki.GameNodeAuthPlayer auth = (Netki.GameNodeAuthPlayer) p;
 						Console.WriteLine("[master] - node [" + nodeId + "] responded to auth success=" + auth.Success);
 						lock (_auth)
 						{
@@ -359,7 +359,7 @@ namespace Cube
 				candidates[pick].PendingCreateRequests++;
 
 				// Try to create a game here...
-				netki.GameNodeCreateGameRequest nreq = new netki.GameNodeCreateGameRequest();
+				Netki.GameNodeCreateGameRequest nreq = new Netki.GameNodeCreateGameRequest();
 				nreq.Configuration = Configuration;
 				candidates[pick].Connection.SendPacket(nreq);
 				return true;
@@ -376,7 +376,7 @@ namespace Cube
 			{
 				switch (req.Request.type_id)
 				{
-					case netki.MasterJoinedGamesRequest.TYPE_ID:
+					case Netki.MasterJoinedGamesRequest.TYPE_ID:
 						{
 							string playerId = req.Connection.GetPlayerId();
 
@@ -410,14 +410,14 @@ namespace Cube
 							}
 
 							// Respond with the number of queries needed.
-							netki.MasterJoinedGamesResponse response = new netki.MasterJoinedGamesResponse();
+							Netki.MasterJoinedGamesResponse response = new Netki.MasterJoinedGamesResponse();
 							response.RequestsCount = (uint)toQuery.Count;
 							req.Connection.SendPacket(response);
 
 							if (toQuery.Count > 0)
 							{
 								// send to all.
-								netki.GameNodeRequestGamesOnPlayer gnrq = new netki.GameNodeRequestGamesOnPlayer();
+								Netki.GameNodeRequestGamesOnPlayer gnrq = new Netki.GameNodeRequestGamesOnPlayer();
 								gnrq.PlayerId = playerId;
 								gnrq.RequestId = MakeToken();
 
@@ -438,16 +438,16 @@ namespace Cube
 
 							return true;
 						}
-					case netki.MasterJoinGameRequest.TYPE_ID:
+					case Netki.MasterJoinGameRequest.TYPE_ID:
 						{
-							netki.MasterJoinGameRequest r = (netki.MasterJoinGameRequest) req.Request;
+							Netki.MasterJoinGameRequest r = (Netki.MasterJoinGameRequest) req.Request;
 							lock (_instances)
 							{
 								foreach (NodeRecord nr in _instances.Values)
 								{
 									if (nr.Connection == null)
 										continue;
-									netki.GameNodeGameInfo[] games = nr.Info.Games.Games;
+									Netki.GameNodeGameInfo[] games = nr.Info.Games.Games;
 									for (int i=0;i<games.Length;i++)
 									{
 										if (games[i].Id == r.GameId && games[i].JoinableByName)
@@ -455,7 +455,7 @@ namespace Cube
 											// make request id
 											req.RequestId = MakeToken();
 											// success
-											netki.GameNodeAuthPlayer auth = new netki.GameNodeAuthPlayer();
+											Netki.GameNodeAuthPlayer auth = new Netki.GameNodeAuthPlayer();
 											auth.PlayerId = req.Connection.GetPlayerId();
 											auth.Token = MakeToken();
 											auth.GameId = r.GameId;
@@ -467,13 +467,13 @@ namespace Cube
 								}
 							}
 							// fail
-							netki.MasterJoinGameResponse resp = new netki.MasterJoinGameResponse();
+							Netki.MasterJoinGameResponse resp = new Netki.MasterJoinGameResponse();
 							req.Connection.SendPacket(resp);
 							return true;
 						}
-					case netki.MasterJoinConfigurationRequest.TYPE_ID:
+					case Netki.MasterJoinConfigurationRequest.TYPE_ID:
 						{
-							netki.MasterJoinConfigurationRequest r = (netki.MasterJoinConfigurationRequest) req.Request;
+							Netki.MasterJoinConfigurationRequest r = (Netki.MasterJoinConfigurationRequest) req.Request;
 							if (FinalizeJoinConfigurationRequest(req.Connection, r, req.RetryCounter))
 								return true;
 
@@ -491,11 +491,11 @@ namespace Cube
 			// Else....
 			switch (req.Request.type_id)
 			{
-				case netki.MasterJoinConfigurationRequest.TYPE_ID:
-					if (FinalizeJoinConfigurationRequest(req.Connection, (netki.MasterJoinConfigurationRequest) req.Request, req.RetryCounter))
+				case Netki.MasterJoinConfigurationRequest.TYPE_ID:
+					if (FinalizeJoinConfigurationRequest(req.Connection, (Netki.MasterJoinConfigurationRequest) req.Request, req.RetryCounter))
 						return true;
 					break;
-				case netki.MasterJoinGameRequest.TYPE_ID:
+				case Netki.MasterJoinGameRequest.TYPE_ID:
 					{
 						// Malformed
 						if (req.RequestId == null || req.RequestId.Length == 0)
@@ -511,7 +511,7 @@ namespace Cube
 							if (_auth.ContainsKey(req.RequestId))
 							{
 								Authorization auth = _auth[req.RequestId];
-								netki.MasterJoinGameResponse resp = new netki.MasterJoinGameResponse();
+								Netki.MasterJoinGameResponse resp = new Netki.MasterJoinGameResponse();
 								if (auth != null)
 								{
 									resp.Address = auth.Address;
@@ -553,7 +553,7 @@ namespace Cube
 			return false;
 		}
 
-		private bool FinalizeJoinConfigurationRequest(GameClientConnection connection, netki.MasterJoinConfigurationRequest req, int retryCounter)
+		private bool FinalizeJoinConfigurationRequest(GameClientConnection connection, Netki.MasterJoinConfigurationRequest req, int retryCounter)
 		{
 			string gameId = null;
 			lock (_instances)
@@ -563,7 +563,7 @@ namespace Cube
 					if (nr.Connection == null)
 						continue;
 					
-					foreach (netki.GameNodeGameInfo gi in nr.Info.Games.Games)
+					foreach (Netki.GameNodeGameInfo gi in nr.Info.Games.Games)
 					{
 						Console.WriteLine(gi.Id + " PlayerSlotsLeft=" + gi.Status.PlayerSlotsLeft + " joinable=" + gi.JoinableByName);
 						if (!gi.JoinableByConfig || !gi.JoinableByName || gi.Status.PlayerSlotsLeft < 1)
@@ -585,7 +585,7 @@ namespace Cube
 			if (gameId != null)
 			{
 				// Now we construct a join on game id request instead
-				netki.MasterJoinGameRequest jgr = new netki.MasterJoinGameRequest();
+				Netki.MasterJoinGameRequest jgr = new Netki.MasterJoinGameRequest();
 				jgr.GameId = gameId;
 
 				Console.WriteLine("[master] - mutating request to MasterJoinGameRequest onto " + gameId);
@@ -611,7 +611,7 @@ namespace Cube
 			{
 				if (toPing++ > 20)
 				{
-					netki.GameNodePing ping = new netki.GameNodePing();
+					Netki.GameNodePing ping = new Netki.GameNodePing();
 					ping.SendGamesList = true;
 					ping.Time = (uint)DateTime.UtcNow.Ticks;
 					lock (_instances)
@@ -667,7 +667,7 @@ namespace Cube
 								if (req.TicksWaited > TickLimit)
 								{
 									Console.WriteLine("Request timed out, sending join failed..");
-									netki.MasterJoinGameResponse fail = new netki.MasterJoinGameResponse();
+									Netki.MasterJoinGameResponse fail = new Netki.MasterJoinGameResponse();
 									req.Connection.SendPacket(fail);
 								}
 								_requests.RemoveAt(i);

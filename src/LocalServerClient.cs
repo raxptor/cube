@@ -11,7 +11,7 @@ namespace Cube
 		private IGameInstServer _server;
 		private GameInstPlayer _player;
 		private ApplicationPacketHandler _pkt_handler;
-		private List<netki.Packet> _queue = new List<netki.Packet>();
+		private List<Netki.Packet> _queue = new List<Netki.Packet>();
 		ulong _endpoint;
 		static uint _endPointCounter = 0;
         private float _serverTickInterval;
@@ -34,7 +34,7 @@ namespace Cube
 			_player.name = playerId;
 			_server = server;
 
-            bool succ = _server.ConnectPlayerStream(playerId, _player, delegate(netki.Packet packet) {
+            bool succ = _server.ConnectPlayerStream(playerId, _player, delegate(Netki.Packet packet) {
                 lock (this)
                 {
     				_queue.Add(packet);
@@ -46,7 +46,7 @@ namespace Cube
 				return false;
 			}
 
-			_server.ConnectPlayerDatagram(playerId, _endpoint, delegate(netki.Packet packet) {
+			_server.ConnectPlayerDatagram(playerId, _endpoint, delegate(Netki.Packet packet) {
                 lock (this)
                 {
     				_queue.Add(packet);
@@ -73,11 +73,11 @@ namespace Cube
             }
 		}
 
-		public netki.Packet[] ReadPackets()
+		public Netki.Packet[] ReadPackets()
 		{
 			lock(this)
 			{
-				netki.Packet[] pkts = _queue.ToArray();
+				Netki.Packet[] pkts = _queue.ToArray();
 				_queue.Clear();
 				return pkts;
 			}
@@ -88,7 +88,7 @@ namespace Cube
 			return GameClientStatus.READY;;
 		}
 
-		public void Send(netki.Packet packet, bool reliable)
+		public void Send(Netki.Packet packet, bool reliable)
 		{
 			if (reliable)
 			{
@@ -96,15 +96,15 @@ namespace Cube
 			}
 			else
 			{
-                if (packet.type_id == netki.GameNodeRawDatagramWrapper.TYPE_ID)
+                if (packet.type_id == Netki.GameNodeRawDatagramWrapper.TYPE_ID)
                 {
                     // These do not actually go on the wire here so they are not in need of any packaging.
-                    netki.GameNodeRawDatagramWrapper wrap = (netki.GameNodeRawDatagramWrapper)packet;
+                    Netki.GameNodeRawDatagramWrapper wrap = (Netki.GameNodeRawDatagramWrapper)packet;
                     _server.OnDatagram(wrap.Data, 0, wrap.Length, _endpoint);
                 }
                 else
                 {
-                    netki.Bitstream.Buffer buf = _pkt_handler.MakePacket(packet);
+                    Netki.Bitstream.Buffer buf = _pkt_handler.MakePacket(packet);
                     _server.OnDatagram(buf.buf, 0, buf.bufsize, _endpoint);
                 }
 			}

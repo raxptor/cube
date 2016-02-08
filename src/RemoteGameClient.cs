@@ -13,7 +13,7 @@ namespace Cube
 		private int _port;
 		private Thread _thr;
 		private Socket _socket;
-		private List<netki.Packet> _packets = new List<netki.Packet>();
+		private List<Netki.Packet> _packets = new List<Netki.Packet>();
 		private ApplicationPacketHandler _pkg_handler;
 
 		public RemoteGameClient(string host, int port, string token, ApplicationPacketHandler handler)
@@ -27,9 +27,9 @@ namespace Cube
 			_thr.Start();
 		}
 
-		private static netki.Packet[] s_Empty = new netki.Packet[0] { };
+		private static Netki.Packet[] s_Empty = new Netki.Packet[0] { };
 
-		public netki.Packet[] ReadPackets()
+		public Netki.Packet[] ReadPackets()
 		{
 			lock(this)
 			{
@@ -37,7 +37,7 @@ namespace Cube
 				{
 					return s_Empty;
 				}
-				netki.Packet[] pkts = _packets.ToArray();
+				Netki.Packet[] pkts = _packets.ToArray();
 				_packets.Clear();
 				return pkts;
 			}
@@ -56,21 +56,21 @@ namespace Cube
 
 		}
 
-		public void Send(netki.Packet packet, bool reliable)
+		public void Send(Netki.Packet packet, bool reliable)
 		{
 			lock(this)
 			{
 				try
 				{
-					if (packet.type_id == netki.GameNodeRawDatagramWrapper.TYPE_ID)
+					if (packet.type_id == Netki.GameNodeRawDatagramWrapper.TYPE_ID)
                     {
-                        netki.GameNodeRawDatagramWrapper wrap = (netki.GameNodeRawDatagramWrapper) packet;
+                        Netki.GameNodeRawDatagramWrapper wrap = (Netki.GameNodeRawDatagramWrapper) packet;
 						if (_udp_socket != null)
                             _udp_socket.Send(wrap.Data, wrap.Offset, wrap.Length, 0);
                         return;
 					}
 
-                    netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(packet);
+                    Netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(packet);
                     if (!reliable)
                     {
                         if (_udp_socket != null)
@@ -97,14 +97,14 @@ namespace Cube
 			Socket s = (Socket)res.AsyncState;
 			int bytes = s.EndReceiveFrom(res, ref _udp_remote);
 
-			netki.Bitstream.Buffer buf = netki.Bitstream.Buffer.Make(_udp_buf);
+			Netki.Bitstream.Buffer buf = Netki.Bitstream.Buffer.Make(_udp_buf);
 			buf.bufsize = bytes;
 
-			uint pkg = (uint)netki.Bitstream.ReadBits(buf, 16);
+			uint pkg = (uint)Netki.Bitstream.ReadBits(buf, 16);
 			if (pkg == 0xffff)
 			{
-				netki.GameNodeUnreliableAuthResponse resp = new netki.GameNodeUnreliableAuthResponse();
-				if (netki.GameNodeUnreliableAuthResponse.ReadFromBitstream(buf, resp))
+				Netki.GameNodeUnreliableAuthResponse resp = new Netki.GameNodeUnreliableAuthResponse();
+				if (Netki.GameNodeUnreliableAuthResponse.ReadFromBitstream(buf, resp))
 				{
 					uint nowticks = (uint)DateTime.UtcNow.Ticks;
 					uint diffticks = nowticks - resp.Time;
@@ -118,7 +118,7 @@ namespace Cube
 			else if (_udp_socket != null)
 			{
                 // Receive as a wrapper.
-                netki.GameNodeRawDatagramWrapper wrap = new netki.GameNodeRawDatagramWrapper();
+                Netki.GameNodeRawDatagramWrapper wrap = new Netki.GameNodeRawDatagramWrapper();
                 wrap.Data = new byte[bytes];
                 wrap.Offset = 0;
                 wrap.Length = bytes;
@@ -132,7 +132,7 @@ namespace Cube
 			s.BeginReceiveFrom(_udp_buf, 0, _udp_buf.Length, 0, ref _udp_remote, OnUdpData, s);
 		}
 
-		private void UDPSetupThread(netki.GameNodeSetupUnreliable setup)
+		private void UDPSetupThread(Netki.GameNodeSetupUnreliable setup)
 		{
 			try
 			{
@@ -154,13 +154,13 @@ namespace Cube
 				int attempts = 30;
 				while (--attempts > 0)
 				{
-					netki.GameNodeUnreliableAuth auth = new netki.GameNodeUnreliableAuth();
+					Netki.GameNodeUnreliableAuth auth = new Netki.GameNodeUnreliableAuth();
 					auth.AuthId = setup.AuthId;
 					auth.Key = setup.Key;
 					auth.Time = (uint)DateTime.UtcNow.Ticks;
-					netki.Bitstream.Buffer buf = netki.Bitstream.Buffer.Make(new byte[1024]);
-					netki.Bitstream.PutBits(buf, 16, 0xffff);
-					netki.GameNodeUnreliableAuth.WriteIntoBitstream(buf, auth);
+					Netki.Bitstream.Buffer buf = Netki.Bitstream.Buffer.Make(new byte[1024]);
+					Netki.Bitstream.PutBits(buf, 16, 0xffff);
+					Netki.GameNodeUnreliableAuth.WriteIntoBitstream(buf, auth);
 					buf.Flip();
 					s.Send(buf.buf, 0, buf.bufsize, 0);
 					Thread.Sleep(100);
@@ -200,9 +200,9 @@ namespace Cube
 
 				socket.Connect(remoteEP);
 
-				netki.GameNodeAuth auth =new netki.GameNodeAuth();
+				Netki.GameNodeAuth auth =new Netki.GameNodeAuth();
 				auth.Token = _token;
-				netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(auth);
+				Netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(auth);
 				socket.Send(buf.buf, 0, buf.bufsize, 0);
 
 				lock (this)
@@ -211,7 +211,7 @@ namespace Cube
 					_socket = socket;
 				}
 
-				netki.BufferedPacketDecoder dec = new netki.BufferedPacketDecoder(65536, _pkg_handler);
+				Netki.BufferedPacketDecoder dec = new Netki.BufferedPacketDecoder(65536, _pkg_handler);
 
 				while (true)
 				{
@@ -223,12 +223,12 @@ namespace Cube
 						if (read <= 0)
 							_status = GameClientStatus.DISCONNECTED;		
 
-						dec.OnStreamData(readBuf, 0, read, delegate(netki.DecodedPacket packet) {
+						dec.OnStreamData(readBuf, 0, read, delegate(Netki.DecodedPacket packet) {
 
-							if (packet.type_id == netki.GameNodeSetupUnreliable.TYPE_ID)
+							if (packet.type_id == Netki.GameNodeSetupUnreliable.TYPE_ID)
 							{
 								Thread t2 = new Thread(delegate() {
-									UDPSetupThread((netki.GameNodeSetupUnreliable)packet.packet);
+									UDPSetupThread((Netki.GameNodeSetupUnreliable)packet.packet);
 								});
 								t2.Start();
 							}
@@ -239,9 +239,9 @@ namespace Cube
 							}
 							else if (_status == GameClientStatus.CONNECTED)
 							{
-								if (packet.type_id == netki.GameNodeAuthResponse.TYPE_ID)
+								if (packet.type_id == Netki.GameNodeAuthResponse.TYPE_ID)
 								{
-									netki.GameNodeAuthResponse resp = (netki.GameNodeAuthResponse) packet.packet;
+									Netki.GameNodeAuthResponse resp = (Netki.GameNodeAuthResponse) packet.packet;
 									Console.WriteLine("AuthSuccess = " + resp.AuthSuccess + " JoinSucces = " + resp.JoinSuccess);
 									if (resp.AuthSuccess && resp.JoinSuccess)
 									{
