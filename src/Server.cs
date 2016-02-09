@@ -11,19 +11,12 @@ namespace Cube
 		public string name;
 	}
 
-	// 
 	public interface IGameInstServer
 	{
 		bool CanPlayerReconnect(string playerId);
-		bool ConnectPlayerStream(string playerId, GameInstPlayer player, PacketExchangeDelegate _send_to_me);
-		void ConnectPlayerDatagram(string playerId, ulong endpoint, PacketExchangeDelegate _send_to_me);
 		bool OnDatagram(byte[] datagram, int offset, int length, ulong endpoint);
-		void PacketOnPlayer(GameInstPlayer player, Netki.Packet packet);
-		void DisconnectPlayer(GameInstPlayer player);
-
+		ulong GetEndpoint();
 		void Update(float deltaTime);
-
-		//
 		Netki.GameNodeGameStatus GetStatus();
 		bool CanShutdown();
 		string GetVersionString(); // identification string for game/version
@@ -38,12 +31,17 @@ namespace Cube
 		DISCONNECTED
 	}
 
+	public struct Datagram
+	{
+		public byte[] data;
+	}
+
 	public interface IGameInstClient
 	{
 		GameClientStatus GetStatus();
 		void Update(float deltaTime);
-		void Send(Netki.Packet packet, bool reliable);
-		Netki.Packet[] ReadPackets();
+		void Send(Datagram datagram);
+		Datagram[] ReadPackets();
 	}
 }
 

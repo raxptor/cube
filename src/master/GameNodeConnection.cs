@@ -35,7 +35,7 @@ namespace Cube
 				{
 					Netki.GameNodeInfo info = (Netki.GameNodeInfo)pkt.packet;
 					_id = info.NodeId;
-					Console.WriteLine("node: identified as [" + _id + "] with address [" + info.NodeAddress + "]");
+					Console.WriteLine("node: identified as [" + _id + "]");
 					_master.RegisterInstance(info, this);
 				}
 				else

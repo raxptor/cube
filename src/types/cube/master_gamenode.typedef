@@ -21,6 +21,7 @@ GameNodeGameInfo @netki
 {
 	string Id
 	string Configuration
+	string Address
 	string Info
 	string[] RejoinPlayers
 	GameNodeGameStatus Status
@@ -55,7 +56,6 @@ GameNodePing @netki
 GameNodeInfo @netki
 {
 	string NodeId
-	string NodeAddress
 	GameNodeGamesList Games
 }
 

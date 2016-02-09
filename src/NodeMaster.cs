@@ -116,7 +116,6 @@ namespace Cube
 
 				r.Info = info;
 				r.Connection = Connection;
-				r.Address = info.NodeAddress;
 				_instances.Add(info.NodeId, r);
 			}
 			Console.WriteLine("[master] - added instance [" + info.NodeId + "]");

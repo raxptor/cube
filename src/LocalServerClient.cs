@@ -11,7 +11,7 @@ namespace Cube
 		private IGameInstServer _server;
 		private GameInstPlayer _player;
 		private ApplicationPacketHandler _pkt_handler;
-		private List<Netki.Packet> _queue = new List<Netki.Packet>();
+		private List<Datagram> _queue = new List<Datagram>();
 		ulong _endpoint;
 		static uint _endPointCounter = 0;
         private float _serverTickInterval;
@@ -33,26 +33,6 @@ namespace Cube
 			_player = new GameInstPlayer();
 			_player.name = playerId;
 			_server = server;
-
-            bool succ = _server.ConnectPlayerStream(playerId, _player, delegate(Netki.Packet packet) {
-                lock (this)
-                {
-    				_queue.Add(packet);
-                }
-			});
-
-			if (!succ)
-			{
-				return false;
-			}
-
-			_server.ConnectPlayerDatagram(playerId, _endpoint, delegate(Netki.Packet packet) {
-                lock (this)
-                {
-    				_queue.Add(packet);
-                }
-			});
-
 			return true;
 		}
 
@@ -73,11 +53,11 @@ namespace Cube
             }
 		}
 
-		public Netki.Packet[] ReadPackets()
+		public Datagram[] ReadPackets()
 		{
 			lock(this)
 			{
-				Netki.Packet[] pkts = _queue.ToArray();
+				Datagram[] pkts = _queue.ToArray();
 				_queue.Clear();
 				return pkts;
 			}
@@ -88,26 +68,9 @@ namespace Cube
 			return GameClientStatus.READY;;
 		}
 
-		public void Send(Netki.Packet packet, bool reliable)
+		public void Send(Datagram datagram)
 		{
-			if (reliable)
-			{
-				_server.PacketOnPlayer(_player, packet);
-			}
-			else
-			{
-                if (packet.type_id == Netki.GameNodeRawDatagramWrapper.TYPE_ID)
-                {
-                    // These do not actually go on the wire here so they are not in need of any packaging.
-                    Netki.GameNodeRawDatagramWrapper wrap = (Netki.GameNodeRawDatagramWrapper)packet;
-                    _server.OnDatagram(wrap.Data, 0, wrap.Length, _endpoint);
-                }
-                else
-                {
-                    Netki.Bitstream.Buffer buf = _pkt_handler.MakePacket(packet);
-                    _server.OnDatagram(buf.buf, 0, buf.bufsize, _endpoint);
-                }
-			}
+			_server.OnDatagram(datagram.data, 0, datagram.data.Length, _endpoint);
 		}	
 	}
 }
