@@ -17,10 +17,6 @@ namespace Cube
         private float _serverTickInterval;
         private float _serverTickAccum;
 
-		class Player : GameInstPlayer
-		{
-		}
-
         public LocalServerClient(ApplicationPacketHandler handler, float serverTickInterval)
 		{
 			_endpoint = _endPointCounter++;
@@ -30,8 +26,6 @@ namespace Cube
 
 		public bool Connect(IGameInstServer server, string playerId)
 		{
-			_player = new GameInstPlayer();
-			_player.name = playerId;
 			_server = server;
 			return true;
 		}
@@ -41,6 +35,15 @@ namespace Cube
             if (_serverTickInterval <= 0)
             {
                 _server.Update(deltaTime);
+                ServerDatagram[] dgrams = _server.GetOutgoingDatagrams();
+                foreach (ServerDatagram dg in dgrams)
+                {
+                    Datagram d = new Datagram();
+                    d.Data = dg.Data;
+                    d.Offset = dg.Offset;
+                    d.Length = dg.Length;
+                    _queue.Add(d);
+                }
             }
             else
             {
@@ -65,12 +68,17 @@ namespace Cube
 
 		public GameClientStatus GetStatus()
 		{
-			return GameClientStatus.READY;;
+            return GameClientStatus.CONNECTED;
 		}
 
 		public void Send(Datagram datagram)
 		{
-			_server.OnDatagram(datagram.data, 0, datagram.data.Length, _endpoint);
+			ServerDatagram[] dgram = new ServerDatagram[1];
+			dgram[0].Data = datagram.Data;
+			dgram[0].Length = datagram.Length;
+            dgram[0].Offset = datagram.Offset;
+			dgram[0].Endpoint = _endpoint;
+			_server.HandleDatagrams(dgram);
 		}	
 	}
 }

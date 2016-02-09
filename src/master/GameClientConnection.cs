@@ -94,7 +94,10 @@ namespace Cube
 			}
 
             Netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(packet);;
-			_output.Send(buf.buf, 0, buf.bufsize);
+			if (buf.bitsize != 0) {
+				Console.WriteLine ("bitsize != 0!");
+			}
+			_output.Send(buf.buf, 0, buf.bytesize);
 		}
 
 		public void OnStreamData(byte[] data, int offset, int length)

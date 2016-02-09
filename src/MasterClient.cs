@@ -65,7 +65,11 @@ namespace Cube
 					Netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(packet);
 					try
 					{
-						_socket.Send(buf.buf, 0, buf.bufsize, 0);
+						if (buf.bitsize != 0)
+						{
+							Console.WriteLine("Bitsize != 0!");
+						}
+						_socket.Send(buf.buf, 0, buf.bytesize, 0);
 						return true;
 					}
 					catch (Exception)
@@ -192,7 +196,10 @@ namespace Cube
 					foreach (Netki.Packet p in _requests)
 					{
 						Netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(p);
-						socket.Send(buf.buf, 0, buf.bufsize, 0);
+						if (buf.bitsize != 0) {
+							Console.WriteLine("Bitsize != 0!");
+						}							
+						socket.Send(buf.buf, 0, buf.bitsize, 0);
 					}
 					_requests.Clear();
 					_socket = socket;

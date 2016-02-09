@@ -11,10 +11,13 @@ namespace Cube
 		private GameClientStatus _status;
 		private string _host, _token;
 		private int _port;
-		private Thread _thr;
-		private Socket _socket;
 		private List<Datagram> _packets = new List<Datagram>();
 		private ApplicationPacketHandler _pkg_handler;
+
+		private byte[] _udp_buf = new byte[4096];
+		private EndPoint _udp_remote = new IPEndPoint(IPAddress.Any, 0);
+		private Socket _socket = null; // set when connected
+		private DateTime _lastRecv = DateTime.Now.AddDays(-10);
 
 		public RemoteGameClient(string host, int port, string token, ApplicationPacketHandler handler)
 		{
@@ -28,9 +31,11 @@ namespace Cube
 			IPAddress ipAddress = ipHostInfo.AddressList[0];
 			IPEndPoint remoteEP = new IPEndPoint(ipAddress, (int)_port);
 			IPEndPoint localEP = new IPEndPoint(0, 0);
+
 			_socket = new Socket(localEP.Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 			_socket.Bind(localEP);
 			_socket.Connect(remoteEP);
+			_socket.BeginReceiveFrom(_udp_buf, 0, _udp_buf.Length, 0, ref _udp_remote, OnUdpData, _socket);
 		}
 
 		private static Datagram[] s_Empty = new Datagram[0] { };
@@ -58,7 +63,20 @@ namespace Cube
 		}
 
 		public void Update(float deltaTime)
-		{
+		{			
+			if (_lastRecv != null)
+			{
+				double sincePacket = (DateTime.Now - _lastRecv).TotalSeconds;
+				if (sincePacket > 10.0f) 
+				{
+					lock (this)
+					{
+						Console.WriteLine("Connection to server timed out");
+						_status = GameClientStatus.DISCONNECTED;
+						_socket.Close();
+					}
+				}
+			}
 
 		}
 
@@ -68,10 +86,7 @@ namespace Cube
 			{
 				try
 				{
-	                if (_udp_socket != null)
-					{
-						_udp_socket.Send(dgram.data, 0, dgram.data.Length, 0);
-					}
+                    _socket.Send(dgram.Data, (int)dgram.Offset, (int)dgram.Length, 0);
 				}
 				catch(Exception)
 				{
@@ -79,11 +94,7 @@ namespace Cube
 				}
 			}
 		}
-
-		private byte[] _udp_buf = new byte[4096];
-		private EndPoint _udp_remote = new IPEndPoint(IPAddress.Any, 0);
-		private Socket _udp_socket = null; // set when connected
-
+			
 		private void OnUdpData(IAsyncResult res)
 		{
 			Socket s = (Socket)res.AsyncState;
@@ -92,21 +103,19 @@ namespace Cube
 			byte[] data = new byte[bytes];
 			Buffer.BlockCopy(_udp_buf, 0, data, 0, bytes);
 
-			Datagram d = new Datagram();
-			d.data = data;
-			_packets.Add(d);
+			lock (this)
+			{
+				Datagram d = new Datagram ();
+				d.Data = data;
+                d.Offset = 0;
+                d.Length = (uint)bytes;
+				_packets.Add(d);
+				_lastRecv = DateTime.Now;
+				_status = GameClientStatus.CONNECTED;
+			}
 
 			s.BeginReceiveFrom(_udp_buf, 0, _udp_buf.Length, 0, ref _udp_remote, OnUdpData, s);
 		}
 	}
-
-		/*
-		 * 
-		 *				Console.WriteLine("Attempting UDP setup " + setup.Host + ":" + setup.Port);
-				Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-
-				// remote
-
-*/
 }
 

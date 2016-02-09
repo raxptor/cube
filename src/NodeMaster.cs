@@ -12,7 +12,6 @@ namespace Cube
 
 		class NodeRecord
 		{
-			public string Address;
 			public GameNodeConnection Connection;
 			public Netki.GameNodeInfo Info;
 			public int PendingCreateRequests;
@@ -257,8 +256,7 @@ namespace Cube
 							// store authorization
 							if (auth.Success)
 							{
-								Authorization na = new Authorization();
-								na.Address = _instances[nodeId].Address;
+								Authorization na = new Authorization();								
 								na.Token = auth.Token;
 								_auth[auth.RequestId] = na;
 							}

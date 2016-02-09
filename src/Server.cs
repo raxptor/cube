@@ -11,15 +11,22 @@ namespace Cube
 		public string name;
 	}
 
+	public struct ServerDatagram
+	{		
+		public byte[] Data;
+		public uint Offset, Length;
+		public ulong Endpoint;
+	}
+
 	public interface IGameInstServer
 	{
 		bool CanPlayerReconnect(string playerId);
-		bool OnDatagram(byte[] datagram, int offset, int length, ulong endpoint);
-		ulong GetEndpoint();
+		void HandleDatagrams(ServerDatagram[] datagrams);
+		ServerDatagram[] GetOutgoingDatagrams();
 		void Update(float deltaTime);
 		Netki.GameNodeGameStatus GetStatus();
 		bool CanShutdown();
-		string GetVersionString(); // identification string for game/version
+		string GetVersionString();
 	}
 
 	public enum GameClientStatus
@@ -33,7 +40,8 @@ namespace Cube
 
 	public struct Datagram
 	{
-		public byte[] data;
+		public byte[] Data;
+        public uint Offset, Length;
 	}
 
 	public interface IGameInstClient
@@ -44,6 +52,3 @@ namespace Cube
 		Datagram[] ReadPackets();
 	}
 }
-
-
-

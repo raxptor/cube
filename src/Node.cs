@@ -6,18 +6,20 @@ using System;
 
 namespace Cube
 {
-	public interface IGameSpawner
-	{
-		IGameInstServer SpawnInstance(string Configuration);
-	}
-
 	public struct Authorization
 	{
 		public string PlayerId;
 		public string Token;
 		public DateTime Created;
 	}
-		
+
+    public delegate bool GetAuthInformation(string Token, out Authorization Auth);
+	
+    public interface IGameSpawner
+    {
+        IGameInstServer SpawnInstance(string Configuration, GetAuthInformation Auther);
+    }
+
 	public class GameInstRecord
 	{
 		public IGameInstServer server;
@@ -27,6 +29,9 @@ namespace Cube
 		public List<Authorization> auth;
 		public Dictionary<string, DateTime> rejoin = new Dictionary<string, DateTime>();
 		public DateTime lastActive;
+
+        public Netki.PacketDatagramServer dgramServer;
+        public List<ServerDatagram> datagrams;
 	}
 		
 	public class Node
@@ -78,7 +83,7 @@ namespace Cube
 		public string StartInstance(string Configuration, string Info)
 		{
 			GameInstRecord n = new GameInstRecord();
-			n.server = _spawner.SpawnInstance(Configuration);
+			n.server = _spawner.SpawnInstance(Configuration, null);
 			if (n.server == null)
 				return null;
 
@@ -87,6 +92,18 @@ namespace Cube
 			n.configuration = Configuration;
 			n.id = _id + "-" + n.server.GetVersionString() + "-" + (_idCounter++);
 			n.auth = new List<Authorization>();
+
+            n.datagrams = new List<ServerDatagram>();
+            n.dgramServer = new Netki.PacketDatagramServer(delegate(byte[] data, uint length, ulong EndPoint) {
+                ServerDatagram dgram = new ServerDatagram();
+                dgram.Data = data;
+                dgram.Length = length;
+                dgram.Endpoint = EndPoint;
+                lock (n.datagrams) {
+                    n.datagrams.Add(dgram);
+                }
+            });
+            
 			lock (_instances)
 			{
 				_instances.Add(n);
@@ -305,8 +322,23 @@ namespace Cube
 					{
 						float dt = _updateRate * 0.001f;
 						foreach (GameInstRecord r in _instances)
-						{
+						{                            
+                            // Node 
+                            ServerDatagram[] incoming;
+                            lock (r.datagrams)
+                            {
+                                incoming = r.datagrams.ToArray();
+                                r.datagrams.Clear();
+                            }
+                                
+                            r.server.HandleDatagrams(incoming);
 							r.server.Update(dt);
+
+                            ServerDatagram[] outgoing = r.server.GetOutgoingDatagrams();
+                            foreach (ServerDatagram dgr in outgoing)
+                            {
+                                r.dgramServer.Send(dgr.Data, (int)dgr.Offset, (int)dgr.Length, dgr.Endpoint);
+                            }
 						}
 					}
 					next = next.AddMilliseconds(_updateRate);
@@ -340,7 +372,13 @@ namespace Cube
 			while (true)
 			{
 				IPHostEntry ipHostInfo = Dns.GetHostEntry(_masterAddress);
-				IPAddress ipAddress = ipHostInfo.AddressList[0];
+				IPAddress ipAddress = null;
+
+				foreach (var p in ipHostInfo.AddressList) {
+					if (p.AddressFamily == AddressFamily.InterNetwork)
+						ipAddress = p;
+				}
+
 				IPEndPoint remoteEP = new IPEndPoint(ipAddress, NodeMaster.DEFAULT_NODE_PORT);
 				Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
@@ -355,14 +393,14 @@ namespace Cube
 					info.Games = MakeGamesList();
 					info.NodeId = _id;
 					Netki.Bitstream.Buffer buf = _app_packet_handler.MakePacket(info);
-					socket.Send(buf.buf, 0, buf.bufsize, 0);
+					socket.Send(buf.buf, 0, buf.bytesize, 0);
 
 					Netki.BufferedPacketDecoder pdec = new Netki.BufferedPacketDecoder(65536, _app_packet_handler);
 					byte[] rbuf = new byte[65536];
 
 					PacketExchangeDelegate xchange = delegate(Netki.Packet p) {
 						Netki.Bitstream.Buffer b = _app_packet_handler.MakePacket(p);
-						socket.Send(b.buf, 0, b.bufsize, 0);
+						socket.Send(b.buf, 0, b.bytesize, 0);
 					};
 
 					Netki.GameNodeConfigurationsSupport conf = new Netki.GameNodeConfigurationsSupport();
