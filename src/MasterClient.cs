@@ -28,10 +28,10 @@ namespace Cube
 		Netki.MasterJoinGameResponse _joinGameResponse = null;
 		ApplicationPacketHandler _pkg_handler;
 
-		public MasterClient(string host, ApplicationPacketHandler pkg_handler)
+		public MasterClient(string host)
 		{
 			_host = host;
-			_pkg_handler = pkg_handler;
+            _pkg_handler = new MasterPacketsHandler();
 			_status = Status.IDLE;
 			_thread = new Thread(Run);
 			_thread.Start();
@@ -178,9 +178,20 @@ namespace Cube
 				_status = Status.CONNECTING;
 			}
 
-			IPHostEntry ipHostInfo = Dns.GetHostEntry(_host);
-			IPAddress ipAddress = ipHostInfo.AddressList[0];
-			IPEndPoint remoteEP = new IPEndPoint(ipAddress, NodeMaster.DEFAULT_CLIENT_PORT);
+            IPAddress addr = null;
+            foreach (IPAddress e in Dns.GetHostEntry(_host).AddressList)
+            {
+                if (e.AddressFamily == AddressFamily.InterNetwork)
+                    addr = e;
+            }
+
+            if (addr == null)
+            {
+                _status = Status.FAILED;
+                return;
+            }
+			
+			IPEndPoint remoteEP = new IPEndPoint(addr, NodeMaster.DEFAULT_CLIENT_PORT);
 			Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 			try
 			{

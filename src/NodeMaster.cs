@@ -59,9 +59,9 @@ namespace Cube
 
 		Dictionary<string, PlayerAtNode> _playerAtNode = new Dictionary<string, PlayerAtNode>();
 
-		public NodeMaster(ApplicationPacketHandler packet_handler)
+		public NodeMaster()
 		{
-			_app_packet_handler = packet_handler;
+            _app_packet_handler = new MasterPacketsHandler();
 			_node_serv = new Netki.PacketStreamServer(new NodeConnectionHandler(this));
 			_client_serv = new Netki.PacketStreamServer(new ClientConnectionHandler(this));
 			_update_thread = new Thread(UpdateThread);
