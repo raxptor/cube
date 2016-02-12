@@ -33,7 +33,7 @@ namespace Cube
 		{
             if (_serverTickInterval <= 0)
             {
-                _server.Update(deltaTime);
+                _server.Update();
                 ServerDatagram[] dgrams = _server.GetOutgoingDatagrams();
                 foreach (ServerDatagram dg in dgrams)
                 {
@@ -49,7 +49,7 @@ namespace Cube
                 _serverTickAccum += deltaTime;
                 while (_serverTickAccum > _serverTickInterval)
                 {
-                    _server.Update(_serverTickInterval);
+                    _server.Update();
                     _serverTickAccum -= _serverTickInterval;
                 }
             }

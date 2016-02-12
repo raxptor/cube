@@ -26,7 +26,7 @@ namespace Cube
         void GiveKnockTocken(string token, OnTokenConsumed consumed);
 		void HandleDatagrams(ServerDatagram[] datagrams);
 		ServerDatagram[] GetOutgoingDatagrams();
-		void Update(float deltaTime);
+		void Update();
 		Netki.GameNodeGameStatus GetStatus();
 		bool CanShutdown();
 		string GetVersionString();

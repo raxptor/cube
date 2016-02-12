@@ -10,6 +10,7 @@ namespace Cube
             Bitstream.Buffer buf = Bitstream.Buffer.Make(new byte[1024]);
             Bitstream.PutCompressedInt(buf, packet.type_id);
             Netki.CubePackets.Encode(packet, buf);
+            Bitstream.SyncByte(buf);
             buf.Flip();
             return buf;
         }

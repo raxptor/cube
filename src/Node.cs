@@ -52,9 +52,9 @@ namespace Cube
 
 		string[] _configurations;
 
-		public Node(IGameSpawner spawner, ApplicationPacketHandler handler, string id, string[] configurations, int maxInstances, int updateRateMs, string masterAddress, string myAddress)
+		public Node(IGameSpawner spawner, string id, string[] configurations, int maxInstances, int updateRateMs, string masterAddress, string myAddress)
 		{
-			_app_packet_handler = handler;
+            _app_packet_handler = new MasterPacketsHandler();
 			_masterAddress = masterAddress;
 			_myAddress = myAddress;
 			_configurations = configurations;
@@ -353,15 +353,13 @@ namespace Cube
 			while (true)
 			{
 				DateTime now = DateTime.Now;
-				int ticks = 0;
-				while (now > next && ticks < 5)
+                				
+				if (now > next)
 				{
 					lock (_instances)
 					{
-						float dt = _updateRate * 0.001f;
 						foreach (GameInstRecord r in _instances)
 						{                            
-                            // Node 
                             ServerDatagram[] incoming;
                             lock (r.datagrams)
                             {
@@ -370,7 +368,7 @@ namespace Cube
                             }
                                 
                             r.server.HandleDatagrams(incoming);
-							r.server.Update(dt);
+                            r.server.Update();
 
                             ServerDatagram[] outgoing = r.server.GetOutgoingDatagrams();
                             foreach (ServerDatagram dgr in outgoing)
@@ -380,30 +378,16 @@ namespace Cube
 						}
 					}
 					next = next.AddMilliseconds(_updateRate);
-					ticks++;
 				}
-
-				int skips = 0;
-				while (next < now)
-				{
-					next = next.AddMilliseconds(_updateRate);
-					skips++;
-				}
-
-                if (skips > 0)
-                {
-                    Debug.NodeLog("Updated " + ticks + " in one go [skips=" + skips + "]");
-                }
 
 				TimeSpan ts = (next -now);
 				if (ts.TotalMilliseconds > 0)
 				{
 					DateTime prev = DateTime.Now;
-//					Thread.Sleep((int)(ts.TotalMilliseconds + 1));
-					Thread.Sleep(0);
+					Thread.Sleep((int)(ts.TotalMilliseconds + 1));				
                     if ((DateTime.Now - prev).TotalMilliseconds > 100)
                     {
-                        Debug.NodeLog("sleep for " + ts.TotalMilliseconds + " => " + (DateTime.Now - prev).TotalMilliseconds);
+                        Debug.NodeLog("Sleep for " + ts.TotalMilliseconds + " => " + (DateTime.Now - prev).TotalMilliseconds);
                     }
 				}
 			}
