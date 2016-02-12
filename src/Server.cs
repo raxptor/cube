@@ -17,10 +17,13 @@ namespace Cube
 		public uint Offset, Length;
 		public ulong Endpoint;
 	}
+        
+    public delegate void OnTokenConsumed(string Which);
 
 	public interface IGameInstServer
 	{
 		bool CanPlayerReconnect(string playerId);
+        void GiveKnockTocken(string token, OnTokenConsumed consumed);
 		void HandleDatagrams(ServerDatagram[] datagrams);
 		ServerDatagram[] GetOutgoingDatagrams();
 		void Update(float deltaTime);

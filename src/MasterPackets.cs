@@ -17,7 +17,7 @@ namespace Cube
         public int Decode(byte[] data, int offset, int length, out DecodedPacket pkt)
         {
             Bitstream.Buffer buf = Bitstream.Buffer.Make(data);
-            buf.bytesize = length;
+            buf.bytesize = offset + length;
             buf.bytepos = offset;
             int type_id = Bitstream.ReadCompressedInt(buf);
             if (Netki.CubePackets.Decode(buf, type_id, out pkt))

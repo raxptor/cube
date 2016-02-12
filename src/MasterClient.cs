@@ -168,6 +168,11 @@ namespace Cube
 			lock (this)
 			{
 				_status = Status.DONE;
+                if (_socket != null)
+                {
+                    _socket.Close();
+                    _socket = null;
+                }
 			}
 		}
 
@@ -180,9 +185,11 @@ namespace Cube
 
             IPAddress addr = null;
             foreach (IPAddress e in Dns.GetHostEntry(_host).AddressList)
-            {
+            {             
                 if (e.AddressFamily == AddressFamily.InterNetwork)
+                {
                     addr = e;
+                }
             }
 
             if (addr == null)
@@ -192,7 +199,7 @@ namespace Cube
             }
 			
 			IPEndPoint remoteEP = new IPEndPoint(addr, NodeMaster.DEFAULT_CLIENT_PORT);
-			Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            Socket socket = new Socket(addr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			try
 			{
 				socket.Connect(remoteEP);
@@ -210,41 +217,54 @@ namespace Cube
 						if (buf.bitsize != 0) {
 							Console.WriteLine("Bitsize != 0!");
 						}							
-						socket.Send(buf.buf, 0, buf.bitsize, 0);
+						socket.Send(buf.buf, 0, buf.bytesize, 0);
 					}
 					_requests.Clear();
 					_socket = socket;
 				}
 
 				Netki.BufferedPacketDecoder dec = new Netki.BufferedPacketDecoder(65536, _pkg_handler);
-				while (true)
-				{
-					byte[] readBuf = new byte[65536];
-					int read = socket.Receive(readBuf);
-					if (read <= 0)
-					{
-						lock (this)
-						{
-							if (_status == Status.WAITING)
-								_status = Status.FAILED;
-						}
-						break;
-					}
 
-					dec.OnStreamData(readBuf, 0, read, OnServerPacket);
+                try 
+                {
+    				while (true)
+    				{
+    					byte[] readBuf = new byte[65536];
+    					int read = socket.Receive(readBuf);
+    					if (read <= 0)
+    					{
+    						lock (this)
+    						{
+    							if (_status == Status.WAITING)
+    								_status = Status.FAILED;
+    						}
+    						break;
+    					}
 
-					lock (this)
-					{
-						if (_status == Status.DONE)
-							break;
-					}
+    					dec.OnStreamData(readBuf, 0, read, OnServerPacket);
+
+    					lock (this)
+    					{
+    						if (_status == Status.DONE)
+                            {
+                                socket.Close();
+                                _socket = null;
+    							break;
+                            }
+    					}
+                    }                    
 				}
+                catch (SocketException)
+                {
+                    _socket = null;
+                }
 
 				socket.Close();
 			}
-			catch (SocketException)
+			catch (SocketException er)
 			{
-
+                Console.WriteLine("Exception " + er.Message);
+                _status = Status.FAILED;
 			}
 
 			lock (_requests)

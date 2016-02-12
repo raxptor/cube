@@ -9,7 +9,8 @@ namespace Cube
 	public struct Authorization
 	{
 		public string PlayerId;
-		public string Token;
+		public string AuthToken;
+        public string KnockToken;
 		public DateTime Created;
 	}
 
@@ -148,7 +149,7 @@ namespace Cube
 						TimeSpan diff = now - auths[j].Created;
 						if (diff.TotalSeconds > 15)
 						{
-                            Debug.NodeLog("Expiring auth [" + auths[j].Token + "] to game [" + _instances[i].id + "]");
+                            Debug.NodeLog("Expiring auth [" + auths[j].KnockToken + "] to game [" + _instances[i].id + "]");
 							auths.RemoveAt(j--);
 						}
 						else
@@ -217,6 +218,25 @@ namespace Cube
 			}
 		}
 
+
+        System.Random _token_random = new System.Random();
+        uint _token_counter = 0;
+
+        public string MakeKnockToken()
+        {
+            lock (_token_random)
+            {
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                {
+                    string mix = "token-" + _token_random.NextDouble() + "-knock-" + DateTime.Now + "_" + DateTime.Now.Millisecond + "_" + (_token_counter);
+                    var computedHash = sha.ComputeHash(System.Text.Encoding.ASCII.GetBytes(mix));
+                    var token = Convert.ToBase64String(computedHash);
+                    Debug.NodeLog("Knock token => " + token);
+                    return token;
+                }
+            }
+        }
+
 		public void OnMasterPacket(Netki.Packet packet, PacketExchangeDelegate exchange)
 		{
 			switch (packet.type_id)
@@ -266,11 +286,24 @@ namespace Cube
 									{
 										Authorization auth = new Authorization();
 										auth.PlayerId = ap.PlayerId;
-										auth.Token = ap.Token;
+                                        auth.AuthToken = ap.AuthToken;
+                                        auth.KnockToken = ap.KnockToken;
 										auth.Created = DateTime.Now;
 										r.auth.Add(auth);
 										// send packet back as ack.
 										ap.Success = true;
+                                        ap.Address = _myAddress + ":" + r.dgramServer.GetPort();
+                                        ap.KnockToken = MakeKnockToken();
+                                        r.server.GiveKnockTocken(ap.KnockToken, delegate {
+                                            lock (_instances)
+                                            {
+                                                for (int i=0;i<r.auth.Count;i++)
+                                                {
+                                                    if (r.auth[i].KnockToken == auth.KnockToken)                                                    
+                                                        r.auth.RemoveAt(i);
+                                                }
+                                            }
+                                        });
 										exchange(ap);
 									}
 									else

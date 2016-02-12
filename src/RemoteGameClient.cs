@@ -90,9 +90,12 @@ namespace Cube
 				{
 					lock (this)
 					{
-						Console.WriteLine("Connection to server timed out");
-						_status = GameClientStatus.DISCONNECTED;
-						_socket.Close();
+                        if (_socket != null)
+                        {
+                            Console.WriteLine("Connection to server timed out");
+                            _status = GameClientStatus.DISCONNECTED;
+                            _socket.Close();
+                        }
 					}
 				}
 			}

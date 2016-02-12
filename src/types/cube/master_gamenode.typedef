@@ -33,8 +33,12 @@ GameNodeAuthPlayer @netki
 {
 	string GameId
 	string PlayerId
-	string RequestId
-	string Token
+	string RequestId	
+	// for allowing udp connect
+	string Address	
+	string KnockToken	
+	// actual authentication 	
+	string AuthToken
 	bool Success
 	bool IsRejoin
 }
