@@ -10,7 +10,7 @@ GameNodeGameStatus @netki
 	u32 PlayersJoined
 	u32 PlayerSlotsLeft
 	u32 SpectatorSlotsLeft
-}
+}	
 
 GameNodeConfigurationsSupport @netki
 {

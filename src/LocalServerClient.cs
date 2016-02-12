@@ -8,8 +8,7 @@ namespace Cube
 {
 	public class LocalServerClient : IGameInstClient
 	{
-		private IGameInstServer _server;
-		private GameInstPlayer _player;
+		private IGameInstServer _server;		
 		private ApplicationPacketHandler _pkt_handler;
 		private List<Datagram> _queue = new List<Datagram>();
 		ulong _endpoint;

@@ -29,15 +29,6 @@ namespace Cube
 		string GetVersionString();
 	}
 
-	public enum GameClientStatus
-	{
-		IDLE,
-		CONNECTING,
-		CONNECTED,
-		READY,
-		DISCONNECTED
-	}
-
 	public struct Datagram
 	{
 		public byte[] Data;

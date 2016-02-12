@@ -103,6 +103,8 @@ namespace Cube
                     n.datagrams.Add(dgram);
                 }
             });
+
+            n.dgramServer.Start(0);
             
 			lock (_instances)
 			{
@@ -120,10 +122,12 @@ namespace Cube
 					GameInstRecord record = _instances[i];
 					if (record.id == gameId)
 					{
-						if (record.rejoin.ContainsKey(player.name))
-							record.rejoin.Remove(player.name);
+                        if (record.rejoin.ContainsKey(player.name))
+                        {
+                            record.rejoin.Remove(player.name);
+                        }
 
-						Console.WriteLine("Player " + player.name + " can rejoin onto " + record.id + " until " + expiry);
+                        Debug.NodeLog("Player " + player.name + " can rejoin onto " + record.id + " until " + expiry);
 						record.rejoin.Add(player.name, expiry);
 					}
 				}
@@ -144,7 +148,7 @@ namespace Cube
 						TimeSpan diff = now - auths[j].Created;
 						if (diff.TotalSeconds > 15)
 						{
-							Console.WriteLine("Expiring auth [" + auths[j].Token + "] to game [" + _instances[i].id + "]");
+                            Debug.NodeLog("Expiring auth [" + auths[j].Token + "] to game [" + _instances[i].id + "]");
 							auths.RemoveAt(j--);
 						}
 						else
@@ -158,7 +162,7 @@ namespace Cube
 						TimeSpan age = DateTime.Now - _instances[i].lastActive;
 						if (age.TotalSeconds > 15)
 						{
-							Console.WriteLine("Removing game instance "+ _instances[i].id);
+                            Debug.NodeLog("Removing game instance "+ _instances[i].id);
 							_instances.RemoveAt(i--);
 						}
 					}
@@ -189,6 +193,7 @@ namespace Cube
 					list.Games[i].Id = _instances[i].id;
 					list.Games[i].Info = _instances[i].info;
 					list.Games[i].Status = _instances[i].server.GetStatus();
+                    list.Games[i].Address = _myAddress + ":" + _instances[i].dgramServer.GetPort();
 
 					foreach (string pl in _instances[i].rejoin.Keys)
 					{
@@ -303,7 +308,7 @@ namespace Cube
 					}
 				default:
 					{
-						Console.WriteLine("[node] - unexpected packet from master");
+                        Debug.NodeLog("Unexpected packet from master");
 						return;
 					}
 			}
@@ -352,8 +357,10 @@ namespace Cube
 					skips++;
 				}
 
-				if (skips > 0)
-					Console.WriteLine("Updated " + ticks + " in one go [skips=" + skips + "]");
+                if (skips > 0)
+                {
+                    Debug.NodeLog("Updated " + ticks + " in one go [skips=" + skips + "]");
+                }
 
 				TimeSpan ts = (next -now);
 				if (ts.TotalMilliseconds > 0)
@@ -361,8 +368,10 @@ namespace Cube
 					DateTime prev = DateTime.Now;
 //					Thread.Sleep((int)(ts.TotalMilliseconds + 1));
 					Thread.Sleep(0);
-					if ((DateTime.Now - prev).TotalMilliseconds > 100)
-						Console.WriteLine("sleep for " + ts.TotalMilliseconds + " => " + (DateTime.Now - prev).TotalMilliseconds);
+                    if ((DateTime.Now - prev).TotalMilliseconds > 100)
+                    {
+                        Debug.NodeLog("sleep for " + ts.TotalMilliseconds + " => " + (DateTime.Now - prev).TotalMilliseconds);
+                    }
 				}
 			}
 		}
@@ -385,10 +394,10 @@ namespace Cube
 				// Connect the socket to the remote endpoint. Catch any errors.
 				try
 				{
-					Console.WriteLine("[node] - connecting to master " + _masterAddress);
+                    Debug.NodeLog("Connecting to master " + _masterAddress);
 					socket.Connect(remoteEP);
 
-					Console.WriteLine("[node] - sending id packet");
+                    Debug.NodeLog("Sending id packet");
 					Netki.GameNodeInfo info = new Netki.GameNodeInfo();
 					info.Games = MakeGamesList();
 					info.NodeId = _id;
@@ -412,7 +421,7 @@ namespace Cube
 						int read = socket.Receive(rbuf);
 						if (read <= 0)
 						{
-							Console.WriteLine("[node] - disconnected from master");
+                            Debug.NodeLog("Disconnected from master");
 							break;
 						}
 
@@ -423,13 +432,13 @@ namespace Cube
 				}
 				catch (SocketException se)
 				{
-					Console.WriteLine("SocketException happened. Retrying : {0}", se.ToString());
+                    Debug.NodeLog("SocketException happened. Retrying : " + se.ToString());
 					Random r = new Random();
 					Thread.Sleep(r.Next()%2000 + 500);
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine("Unexpected exception : {0}", e.ToString());
+                    Debug.NodeLog("Unexpected exception : " + e.ToString());
 				}
 				Thread.Sleep(500);
 			}
