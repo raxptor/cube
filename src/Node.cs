@@ -385,7 +385,7 @@ namespace Cube
 				{
 					DateTime prev = DateTime.Now;
 					Thread.Sleep((int)(ts.TotalMilliseconds + 1));				
-                    if ((DateTime.Now - prev).TotalMilliseconds > 100)
+                    if ((DateTime.Now - prev).TotalMilliseconds > ts.TotalMilliseconds * 10)
                     {
                         Debug.NodeLog("Sleep for " + ts.TotalMilliseconds + " => " + (DateTime.Now - prev).TotalMilliseconds);
                     }
