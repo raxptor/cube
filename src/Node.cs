@@ -3,6 +3,7 @@ using System.Threading;
 using System.Net.Sockets;
 using System.Net;
 using System;
+using Netki;
 
 namespace Cube
 {
@@ -37,7 +38,6 @@ namespace Cube
 		
 	public class Node
 	{
-		ApplicationPacketHandler _app_packet_handler;
 		List<GameInstRecord> _instances = new List<GameInstRecord>();
 		Thread _masterThread, _updateThread;
 		IGameSpawner _spawner;
@@ -54,7 +54,6 @@ namespace Cube
 
 		public Node(IGameSpawner spawner, string id, string[] configurations, int maxInstances, int updateRateMs, string masterAddress, string myAddress)
 		{
-            _app_packet_handler = new MasterPacketsHandler();
 			_masterAddress = masterAddress;
 			_myAddress = myAddress;
 			_configurations = configurations;
@@ -70,11 +69,6 @@ namespace Cube
 		}
 
 		Dictionary<ulong, IGameInstServer> _playerDatagrams = new Dictionary<ulong, IGameInstServer>();
-
-		public ApplicationPacketHandler GetPacketHandler()
-		{
-			return _app_packet_handler;
-		}
 
 		public void Start()
 		{
@@ -237,22 +231,21 @@ namespace Cube
             }
         }
 
-		public void OnMasterPacket(Netki.Packet packet, PacketExchangeDelegate exchange)
+		public void OnMasterPacket(ref Netki.DecodedPacket<Netki.CubePacketHolder> decoded, PacketExchangeDelegate exchange)
 		{
-			switch (packet.type_id)
+			switch (decoded.type_id)
 			{
 				case Netki.GameNodePing.TYPE_ID:
 					{
-						exchange(packet);
+						exchange(decoded.packet.GameNodePing);
 						RemoveAuthsAndGames();
-						Netki.GameNodePing p = (Netki.GameNodePing) packet;
-						if (p.SendGamesList)
+						if (decoded.packet.GameNodePing.SendGamesList)
 							exchange(MakeGamesList());
 						return;
 					}
 				case Netki.GameNodeRequestGamesOnPlayer.TYPE_ID:
 					{
-						Netki.GameNodeRequestGamesOnPlayer req = (Netki.GameNodeRequestGamesOnPlayer) packet;
+						Netki.GameNodeRequestGamesOnPlayer req = decoded.packet.GameNodeRequestGamesOnPlayer;
 						List<string> gameIds = new List<string>();
 						lock (_instances)
 						{
@@ -273,7 +266,7 @@ namespace Cube
 
 				case Netki.GameNodeAuthPlayer.TYPE_ID:
 					{
-						Netki.GameNodeAuthPlayer ap = (Netki.GameNodeAuthPlayer) packet;
+						Netki.GameNodeAuthPlayer ap = decoded.packet.GameNodeAuthPlayer;
 						lock (_instances)
 						{
 							foreach (GameInstRecord r in _instances)
@@ -320,7 +313,7 @@ namespace Cube
 						
 				case Netki.GameNodeCreateGameRequest.TYPE_ID:
 					{
-						Netki.GameNodeCreateGameRequest req = (Netki.GameNodeCreateGameRequest) packet;
+						Netki.GameNodeCreateGameRequest req = decoded.packet.GameNodeCreateGameRequest;
 
 						lock (this)
 						{
@@ -415,17 +408,17 @@ namespace Cube
 					socket.Connect(remoteEP);
 
                     Debug.NodeLog("Sending id packet");
-					Netki.GameNodeInfo info = new Netki.GameNodeInfo();
+					GameNodeInfo info = new Netki.GameNodeInfo();
 					info.Games = MakeGamesList();
 					info.NodeId = _id;
-					Netki.Bitstream.Buffer buf = _app_packet_handler.MakePacket(info);
+					Netki.Bitstream.Buffer buf = CubePacketsHandler.MakePacket(info);
 					socket.Send(buf.buf, 0, buf.bytesize, 0);
 
-					Netki.BufferedPacketDecoder pdec = new Netki.BufferedPacketDecoder(65536, _app_packet_handler);
+					BufferedPacketDecoder<CubePacketHolder> pdec = new BufferedPacketDecoder<CubePacketHolder>(65536, new CubePacketDecoder());
 					byte[] rbuf = new byte[65536];
 
 					PacketExchangeDelegate xchange = delegate(Netki.Packet p) {
-						Netki.Bitstream.Buffer b = _app_packet_handler.MakePacket(p);
+						Netki.Bitstream.Buffer b = CubePacketsHandler.MakePacket(p);
 						socket.Send(b.buf, 0, b.bytesize, 0);
 					};
 
@@ -442,8 +435,8 @@ namespace Cube
 							break;
 						}
 
-						pdec.OnStreamData(rbuf, 0, read, delegate(Netki.DecodedPacket packet) {
-							OnMasterPacket(packet.packet, xchange);
+						pdec.OnStreamData(rbuf, 0, read, delegate(ref DecodedPacket<CubePacketHolder> packet) {
+							OnMasterPacket(ref packet, xchange);
 						});
 					}
 				}

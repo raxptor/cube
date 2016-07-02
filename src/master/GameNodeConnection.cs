@@ -1,20 +1,21 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using System;
+using Netki;
 
 namespace Cube
 {
 	public class GameNodeConnection : Netki.StreamConnection
 	{
 		private Netki.ConnectionOutput _output;
-		private Netki.BufferedPacketDecoder _decoder;
+		private BufferedPacketDecoder<CubePacketHolder> _decoder;
 		private NodeMaster _master;
 		private string _id;
 
 		public GameNodeConnection(Netki.ConnectionOutput output, NodeMaster master)
 		{
 			_output = output;
-			_decoder = new Netki.BufferedPacketDecoder(2*65536, master.GetPacketHandler());
+			_decoder = new BufferedPacketDecoder<CubePacketHolder>(2*65536, new CubePacketDecoder());
 			_master = master;
 			_id = null;
 		}
@@ -26,14 +27,14 @@ namespace Cube
 			_master.DisconnectInstance(_id);
 		}
 
-		public void OnPacket(Netki.DecodedPacket pkt)
+		public void OnPacket(ref DecodedPacket<CubePacketHolder> pkt)
 		{
 			if (_id == null)
 			{
 				// only accept
 				if (pkt.type_id == Netki.GameNodeInfo.TYPE_ID)
 				{
-					Netki.GameNodeInfo info = (Netki.GameNodeInfo)pkt.packet;
+					Netki.GameNodeInfo info = pkt.packet.GameNodeInfo;
 					_id = info.NodeId;
 					Console.WriteLine("node: identified as [" + _id + "]");
 					_master.RegisterInstance(info, this);
@@ -46,13 +47,13 @@ namespace Cube
 			}
 			else
 			{
-				_master.OnNodePacket(_id, pkt.packet);
+				_master.OnNodePacket(_id, ref pkt);
 			}
 		}
 
-		public void SendPacket(Netki.Packet packet)
+		public void SendPacket<Pkt>(ref Pkt packet) where Pkt : Packet
 		{
-			Netki.Bitstream.Buffer buf = _master.GetPacketHandler().MakePacket(packet);
+			Netki.Bitstream.Buffer buf = CubePacketsHandler.MakePacket(ref packet);
 			if (buf.bitsize == 0) {
 				_output.Send(buf.buf, 0, buf.bytesize);
 			} else {

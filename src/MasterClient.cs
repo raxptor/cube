@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Collections.Generic;
+using Netki;
 
 namespace Cube
 {
@@ -25,13 +26,13 @@ namespace Cube
 
 		List<Netki.Packet> _requests = new List<Netki.Packet>();
 		List<string> _joinedGames = new List<string>();
-		Netki.MasterJoinGameResponse _joinGameResponse = null;
-		ApplicationPacketHandler _pkg_handler;
+
+		bool _hasJoinGameResponse;
+		Netki.MasterJoinGameResponse _joinGameResponse;
 
 		public MasterClient(string host)
 		{
 			_host = host;
-            _pkg_handler = new MasterPacketsHandler();
 			_status = Status.IDLE;
 			_thread = new Thread(Run);
 			_thread.Start();
@@ -56,13 +57,13 @@ namespace Cube
 			return QueueRequest(req);
 		}
 
-		public bool QueueRequest(Netki.Packet packet)
+		public bool QueueRequest<Pkt>(Pkt packet) where Pkt : Netki.Packet
 		{
 			lock (_requests)
 			{
 				if (_socket != null)
 				{
-					Netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(packet);
+					Netki.Bitstream.Buffer buf = CubePacketsHandler.MakePacket<Pkt>(ref packet);
 					try
 					{
 						if (buf.bitsize != 0)
@@ -90,7 +91,7 @@ namespace Cube
 			return _joinedGames.ToArray();
 		}
 
-		public void OnServerPacket(Netki.DecodedPacket packet)
+		public void OnServerPacket(ref DecodedPacket<CubePacketHolder> packet)
 		{
 			lock (this)
 			{
@@ -98,7 +99,7 @@ namespace Cube
 				{
 					case Netki.MasterJoinedGamesResponse.TYPE_ID:
 						{
-							Netki.MasterJoinedGamesResponse resp = (Netki.MasterJoinedGamesResponse)packet.packet;
+							var resp = packet.packet.MasterJoinedGamesResponse;
 							// initial packet contains no game ids but a request count (which might be zero)
 							if (resp.GameIds == null)
 							{
@@ -119,7 +120,8 @@ namespace Cube
 						}
 						break;
 					case Netki.MasterJoinGameResponse.TYPE_ID:
-						_joinGameResponse = (Netki.MasterJoinGameResponse) packet.packet;
+						_joinGameResponse = packet.packet.MasterJoinGameResponse;
+						_hasJoinGameResponse = true;
 						break;
 					default:
 						break;
@@ -132,7 +134,7 @@ namespace Cube
 			lock (this)
 			{
 				Netki.MasterJoinGameResponse resp = _joinGameResponse;
-				_joinGameResponse = null;
+				_hasJoinGameResponse = false;
 				return resp;
 			}
 		}
@@ -213,7 +215,7 @@ namespace Cube
 				{
 					foreach (Netki.Packet p in _requests)
 					{
-						Netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(p);
+						Netki.Bitstream.Buffer buf = CubePacketsHandler.MakePacket(p);
 						if (buf.bitsize != 0) {
 							Console.WriteLine("Bitsize != 0!");
 						}							
@@ -223,7 +225,7 @@ namespace Cube
 					_socket = socket;
 				}
 
-				Netki.BufferedPacketDecoder dec = new Netki.BufferedPacketDecoder(65536, _pkg_handler);
+				BufferedPacketDecoder<CubePacketHolder> dec = new BufferedPacketDecoder<CubePacketHolder>(65536, new CubePacketDecoder());
 
                 try 
                 {

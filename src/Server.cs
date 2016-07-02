@@ -2,7 +2,7 @@ using System;
 
 namespace Cube
 {
-	public delegate void PacketExchangeDelegate(Netki.Packet packet);
+	public delegate void 	PacketExchangeDelegate(Netki.Packet packet);
 	public delegate byte[] PacketEncodeDelegate(Netki.Packet packet);
 	public delegate void DatagramExchangeDelegate(byte[] buf, int offset, int length);
 

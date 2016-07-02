@@ -9,17 +9,15 @@ namespace Cube
 	public class LocalServerClient : IGameInstClient
 	{
 		private IGameInstServer _server;		
-		private ApplicationPacketHandler _pkt_handler;
 		private List<Datagram> _queue = new List<Datagram>();
 		ulong _endpoint;
 		static uint _endPointCounter = 0;
         private float _serverTickInterval;
         private float _serverTickAccum;
 
-        public LocalServerClient(ApplicationPacketHandler handler, float serverTickInterval)
+        public LocalServerClient(float serverTickInterval)
 		{
 			_endpoint = _endPointCounter++;
-			_pkt_handler = handler;
             _serverTickInterval = serverTickInterval;
 		}
 

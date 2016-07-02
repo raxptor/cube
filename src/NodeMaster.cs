@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Text.RegularExpressions;
 using System;
+using Netki;
 
 namespace Cube
 {
@@ -44,7 +45,6 @@ namespace Cube
 
 		Netki.PacketStreamServer _node_serv;
 		Netki.PacketStreamServer _client_serv;
-		private ApplicationPacketHandler _app_packet_handler;
 		Dictionary<string, NodeRecord> _instances = new Dictionary<string, NodeRecord>();
 		Dictionary<string, Authorization> _auth = new Dictionary<string, Authorization>();
 		Dictionary<string, ResponseRedirectionEntry> _response_redir = new Dictionary<string, ResponseRedirectionEntry>();
@@ -62,7 +62,6 @@ namespace Cube
 
 		public NodeMaster()
 		{
-            _app_packet_handler = new MasterPacketsHandler();
 			_node_serv = new Netki.PacketStreamServer(new NodeConnectionHandler(this));
 			_client_serv = new Netki.PacketStreamServer(new ClientConnectionHandler(this));
 			_update_thread = new Thread(UpdateThread);
@@ -71,11 +70,6 @@ namespace Cube
 		static int _token_counter = 0;
 		static Random _token_random = new Random();
 		static DateTime _token_start = DateTime.Now;
-
-		public ApplicationPacketHandler GetPacketHandler()
-		{
-			return _app_packet_handler;
-		}
 
 		public string MakeToken()
 		{
@@ -122,7 +116,7 @@ namespace Cube
 		}
 
 		// These will not be more than one per connection.
-		public void OnClientRequest(Netki.Packet packet, GameClientConnection conn)
+		public void OnClientRequest(Packet packet, GameClientConnection conn)
 		{
 			lock (_requests)
 			{
@@ -134,13 +128,13 @@ namespace Cube
 			}
 		}
 
-		public void OnNodePacket(string nodeId, Netki.Packet p)
+		public void OnNodePacket(string nodeId, ref DecodedPacket<CubePacketHolder> decoded)
 		{
-			switch (p.type_id)
+			switch (decoded.type_id)
 			{
 				case Netki.GameNodePing.TYPE_ID:
 					{
-						Netki.GameNodePing ping = (Netki.GameNodePing) p;
+						Netki.GameNodePing ping = decoded.packet.GameNodePing;
 						lock (_instances)
 						{
 							NodeRecord node;
@@ -154,7 +148,7 @@ namespace Cube
 					}
 				case Netki.GameNodeConfigurationsSupport.TYPE_ID:
 					{
-						Netki.GameNodeConfigurationsSupport support = (Netki.GameNodeConfigurationsSupport)p;
+						Netki.GameNodeConfigurationsSupport support = decoded.packet.GameNodeConfigurationsSupport;
 						lock (_instances)
 						{
 							NodeRecord node;
@@ -165,7 +159,7 @@ namespace Cube
 					}
 				case Netki.GameNodePlayerIsOnGames.TYPE_ID:
 					{
-						Netki.GameNodePlayerIsOnGames pkt = (Netki.GameNodePlayerIsOnGames) p;
+						Netki.GameNodePlayerIsOnGames pkt = decoded.packet.GameNodePlayerIsOnGames;
                         Debug.MasterLog("Response from [" + nodeId + "] player " + pkt.PlayerId + " is on " + pkt.GameIds.Length + " games");
 
 						// clean up junk
@@ -196,7 +190,7 @@ namespace Cube
 					}
 				case Netki.GameNodeGamesList.TYPE_ID:
 					{
-						Netki.GameNodeGamesList list = (Netki.GameNodeGamesList) p;
+						Netki.GameNodeGamesList list = decoded.packet.GameNodeGamesList;
 						string[] configs = null;
 
 						lock (_instances)
@@ -227,7 +221,7 @@ namespace Cube
 					}
 				case Netki.GameNodeCreateGameResponse.TYPE_ID:
 					{
-						Netki.GameNodeCreateGameResponse resp = (Netki.GameNodeCreateGameResponse) p;
+						Netki.GameNodeCreateGameResponse resp = decoded.packet.GameNodeCreateGameResponse;
 						if (resp.GameId != null)
 						{
                             Debug.MasterLog("Node [" + nodeId + "] created requested game [" + resp.GameId + "]");
@@ -249,7 +243,7 @@ namespace Cube
 					}
 				case Netki.GameNodeAuthPlayer.TYPE_ID:
 					{
-						Netki.GameNodeAuthPlayer auth = (Netki.GameNodeAuthPlayer) p;
+						Netki.GameNodeAuthPlayer auth = decoded.packet.GameNodeAuthPlayer;
                         Debug.MasterLog("Node [" + nodeId + "] responded to auth success=" + auth.Success);
 						lock (_auth)
 						{
@@ -363,7 +357,7 @@ namespace Cube
 				// Try to create a game here...
 				Netki.GameNodeCreateGameRequest nreq = new Netki.GameNodeCreateGameRequest();
 				nreq.Configuration = Configuration;
-				candidates[pick].Connection.SendPacket(nreq);
+				candidates[pick].Connection.SendPacket(ref nreq);
 				return true;
 			}
 		}
@@ -376,7 +370,7 @@ namespace Cube
 
 			if (req.TicksWaited == 0)
 			{
-				switch (req.Request.type_id)
+				switch (req.Request.GetTypeId())
 				{
 					case Netki.MasterJoinedGamesRequest.TYPE_ID:
 						{
@@ -435,7 +429,7 @@ namespace Cube
 								}
 
 								foreach (GameNodeConnection conn in toQuery)
-									conn.SendPacket(gnrq);
+									conn.SendPacket(ref gnrq);
 							}
 
 							return true;
@@ -461,7 +455,7 @@ namespace Cube
 											auth.AuthToken = MakeToken();
 											auth.GameId = r.GameId;
 											auth.RequestId = req.RequestId;
-											nr.Connection.SendPacket(auth);
+											nr.Connection.SendPacket(ref auth);
 											return false;
 										}
 									}
@@ -490,7 +484,7 @@ namespace Cube
 			}
 
 			// Else....
-			switch (req.Request.type_id)
+			switch (req.Request.GetTypeId())
 			{
 				case Netki.MasterJoinConfigurationRequest.TYPE_ID:
 					if (FinalizeJoinConfigurationRequest(req.Connection, (Netki.MasterJoinConfigurationRequest) req.Request, req.RetryCounter))
@@ -625,7 +619,7 @@ namespace Cube
 								totalPlayers += (int)node.Info.Games.Games[q].Status.PlayersJoined;
 							if (node.Connection == null)
 								continue;
-							node.Connection.SendPacket(ping);
+							node.Connection.SendPacket(ref ping);
 						}
                         Debug.MasterLog("Total players:" + totalPlayers + " | CONNECTIONS = clients:" + _client_serv.GetNumConnections() + " nodes:" + _node_serv.GetNumConnections());
 					}
