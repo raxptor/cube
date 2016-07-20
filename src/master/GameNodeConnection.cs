@@ -54,7 +54,7 @@ namespace Cube
 		{
 			Netki.Bitstream.Buffer buf = _master.GetPacketHandler().MakePacket(packet);
 			if (buf.bitsize == 0) {
-				_output.Send(buf.buf, 0, buf.bytesize);
+				_output.Send(buf.buf, 0, (int)buf.bytesize);
 			} else {
 				Console.WriteLine ("Trying to send packet with bitsize = " + buf.bitsize);
 			}

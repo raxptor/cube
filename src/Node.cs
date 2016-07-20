@@ -419,14 +419,14 @@ namespace Cube
 					info.Games = MakeGamesList();
 					info.NodeId = _id;
 					Netki.Bitstream.Buffer buf = _app_packet_handler.MakePacket(info);
-					socket.Send(buf.buf, 0, buf.bytesize, 0);
+					socket.Send(buf.buf, 0, (int)buf.bytesize, 0);
 
 					Netki.BufferedPacketDecoder pdec = new Netki.BufferedPacketDecoder(65536, _app_packet_handler);
 					byte[] rbuf = new byte[65536];
 
 					PacketExchangeDelegate xchange = delegate(Netki.Packet p) {
 						Netki.Bitstream.Buffer b = _app_packet_handler.MakePacket(p);
-						socket.Send(b.buf, 0, b.bytesize, 0);
+						socket.Send(b.buf, 0, (int)b.bytesize, 0);
 					};
 
 					Netki.GameNodeConfigurationsSupport conf = new Netki.GameNodeConfigurationsSupport();

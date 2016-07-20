@@ -97,7 +97,7 @@ namespace Cube
 			if (buf.bitsize != 0) {
 				Console.WriteLine ("bitsize != 0!");
 			}
-			_output.Send(buf.buf, 0, buf.bytesize);
+			_output.Send(buf.buf, 0, (int)buf.bytesize);
 		}
 
 		public void OnStreamData(byte[] data, int offset, int length)

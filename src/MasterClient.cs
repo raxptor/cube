@@ -69,7 +69,7 @@ namespace Cube
 						{
 							Console.WriteLine("Bitsize != 0!");
 						}
-						_socket.Send(buf.buf, 0, buf.bytesize, 0);
+						_socket.Send(buf.buf, 0, (int)buf.bytesize, 0);
 						return true;
 					}
 					catch (Exception)
@@ -217,7 +217,7 @@ namespace Cube
 						if (buf.bitsize != 0) {
 							Console.WriteLine("Bitsize != 0!");
 						}							
-						socket.Send(buf.buf, 0, buf.bytesize, 0);
+						socket.Send(buf.buf, 0, (int)buf.bytesize, 0);
 					}
 					_requests.Clear();
 					_socket = socket;
