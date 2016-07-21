@@ -24,8 +24,8 @@ namespace Cube
 	{
 		bool CanPlayerReconnect(string playerId);
         void GiveKnockTocken(string token, OnTokenConsumed consumed);
-		void HandleDatagrams(ServerDatagram[] datagrams);
-		ServerDatagram[] GetOutgoingDatagrams();
+		void HandleDatagrams(ServerDatagram[] datagrams, uint count);
+		bool GetOutgoingDatagrams(ServerDatagram[] output, out uint count);
 		void Update();
 		Netki.GameNodeGameStatus GetStatus();
 		bool CanShutdown();
