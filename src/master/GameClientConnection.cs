@@ -4,22 +4,22 @@ using System;
 
 namespace Cube
 {
-	public class GameClientConnection : Netki.StreamConnection
+	public class GameClientConnection : StreamConnection
 	{
-		private Netki.ConnectionOutput _output;
-		private Netki.BufferedPacketDecoder _decoder;
+		private ConnectionOutput _output;
+		private BufferedPacketDecoder _decoder;
 		private NodeMaster _master;
 		private string _id;
 		private Netki.Packet _pending_request;
 		private bool _disconnected;
-		private Netki.BufferedPacketDecoder _preAuthDecoder;
+		private BufferedPacketDecoder _preAuthDecoder;
 		private ApplicationPacketHandler _pkg_handler;
 
-		public GameClientConnection(int connection_id, ApplicationPacketHandler pkg_handler, Netki.ConnectionOutput output, NodeMaster master)
+		public GameClientConnection(int connection_id, ApplicationPacketHandler pkg_handler, ConnectionOutput output, NodeMaster master)
 		{
 			_output = output;
 			_pkg_handler = pkg_handler;
-			_preAuthDecoder = new Netki.BufferedPacketDecoder(512, _pkg_handler);
+			_preAuthDecoder = new BufferedPacketDecoder(512, _pkg_handler);
 			_master = master;
 			_id = null;
 		}
@@ -112,7 +112,7 @@ namespace Cube
 					if (_id != null)
 					{
 						_preAuthDecoder = null;
-						_decoder = new Netki.BufferedPacketDecoder(4096, _pkg_handler);
+						_decoder = new BufferedPacketDecoder(4096, _pkg_handler);
 						OnStreamData(data, offset + decoded, length - decoded);
 					}
 				}
@@ -126,7 +126,7 @@ namespace Cube
 		}
 	}
 
-	public class ClientConnectionHandler : Netki.StreamConnectionHandler
+	public class ClientConnectionHandler : StreamConnectionHandler
 	{
 		NodeMaster _master;
 
@@ -140,7 +140,7 @@ namespace Cube
 
 		}
 
-		public Netki.StreamConnection OnConnected(int connection_id, Netki.ConnectionOutput output)
+		public StreamConnection OnConnected(int connection_id, ConnectionOutput output)
 		{
 			return new GameClientConnection(connection_id, _master.GetPacketHandler(), output, _master);
 		}

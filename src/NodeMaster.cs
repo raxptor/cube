@@ -42,8 +42,8 @@ namespace Cube
 			public int References;
 		}
 
-		Netki.PacketStreamServer _node_serv;
-		Netki.PacketStreamServer _client_serv;
+		PacketStreamServer _node_serv;
+		PacketStreamServer _client_serv;
 		private ApplicationPacketHandler _app_packet_handler;
 		Dictionary<string, NodeRecord> _instances = new Dictionary<string, NodeRecord>();
 		Dictionary<string, Authorization> _auth = new Dictionary<string, Authorization>();
@@ -63,8 +63,8 @@ namespace Cube
 		public NodeMaster()
 		{
             _app_packet_handler = new MasterPacketsHandler();
-			_node_serv = new Netki.PacketStreamServer(new NodeConnectionHandler(this));
-			_client_serv = new Netki.PacketStreamServer(new ClientConnectionHandler(this));
+			_node_serv = new PacketStreamServer(new NodeConnectionHandler(this));
+			_client_serv = new PacketStreamServer(new ClientConnectionHandler(this));
 			_update_thread = new Thread(UpdateThread);
 		}
 

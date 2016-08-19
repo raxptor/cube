@@ -31,8 +31,6 @@ namespace Cube
 		public Dictionary<string, DateTime> rejoin = new Dictionary<string, DateTime>();
 		public DateTime lastActive;
 
-		public Netki.PacketDatagramServer dgramServer;
-
 		public ServerDatagram[] datagrams;
 		public uint numDatagrams;
 	}
@@ -95,29 +93,6 @@ namespace Cube
 			n.configuration = Configuration;
 			n.id = _id + "-" + n.server.GetVersionString() + "-" + (_idCounter++);
 			n.auth = new List<Authorization>();
-
-			n.datagrams = new ServerDatagram[256];
-			n.numDatagrams = 0;
-			n.dgramServer = new Netki.PacketDatagramServer(delegate (byte[] data, uint length, ulong EndPoint)
-			{
-				if (data != null)
-				{
-					ServerDatagram dgram = new ServerDatagram();
-					dgram.Data = data;
-					dgram.Length = length;
-					dgram.Endpoint = EndPoint;
-					lock (n.datagrams)
-					{
-						if (n.numDatagrams < n.datagrams.Length)
-						{
-							n.datagrams[n.numDatagrams++] = dgram;
-						}
-					}
-				}
-				return new byte[4096];
-			});
-
-			n.dgramServer.Start(0);
 
 			lock (_instances)
 			{
@@ -206,7 +181,7 @@ namespace Cube
 					list.Games[i].Id = _instances[i].id;
 					list.Games[i].Info = _instances[i].info;
 					list.Games[i].Status = _instances[i].server.GetStatus();
-					list.Games[i].Address = _myAddress + ":" + _instances[i].dgramServer.GetPort();
+					list.Games[i].Address = _myAddress + ":" + _instances[i].server.GetPort();
 
 					foreach (string pl in _instances[i].rejoin.Keys)
 					{
@@ -304,7 +279,7 @@ namespace Cube
 										r.auth.Add(auth);
 										// send packet back as ack.
 										ap.Success = true;
-										ap.Address = _myAddress + ":" + r.dgramServer.GetPort();
+										ap.Address = _myAddress + ":" + r.server.GetPort();
 										ap.KnockToken = MakeKnockToken();
 										r.server.GiveKnockTocken(ap.KnockToken, delegate
 										{
@@ -366,33 +341,14 @@ namespace Cube
 			ServerDatagram[] sd = new ServerDatagram[1024];
 			while (true)
 			{
-				DateTime now = DateTime.Now;				if (now > next)
+				DateTime now = DateTime.Now;
+				if (now > next)
 				{
 					lock (_instances)
 					{
 						foreach (GameInstRecord r in _instances)
 						{
-							uint count;
-							lock (r.datagrams)
-							{
-								count = r.numDatagrams;
-								Array.Copy(r.datagrams, sd, (int)count);
-								r.numDatagrams = 0;
-							}
-
-							r.server.HandleDatagrams(sd, count);
 							r.server.Update();
-
-							bool hasMore;
-							do
-							{
-								hasMore = r.server.GetOutgoingDatagrams(sd, out count);
-								for (uint i=0;i<count;i++)
-								{
-									r.dgramServer.Send(sd[i].Data, (int)sd[i].Offset, (int)sd[i].Length, sd[i].Endpoint);
-								}
-							}
-							while (hasMore);
 						}
 					}
 					next = next.AddMilliseconds(_updateRate);
@@ -440,7 +396,7 @@ namespace Cube
 					Netki.Bitstream.Buffer buf = _app_packet_handler.MakePacket(info);
 					socket.Send(buf.buf, 0, (int)buf.bytesize, 0);
 
-					Netki.BufferedPacketDecoder pdec = new Netki.BufferedPacketDecoder(65536, _app_packet_handler);
+					BufferedPacketDecoder pdec = new BufferedPacketDecoder(65536, _app_packet_handler);
 					byte[] rbuf = new byte[65536];
 
 					PacketExchangeDelegate xchange = delegate (Netki.Packet p)

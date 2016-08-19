@@ -4,17 +4,17 @@ using System;
 
 namespace Cube
 {
-	public class GameNodeConnection : Netki.StreamConnection
+	public class GameNodeConnection : StreamConnection
 	{
-		private Netki.ConnectionOutput _output;
-		private Netki.BufferedPacketDecoder _decoder;
+		private ConnectionOutput _output;
+		private BufferedPacketDecoder _decoder;
 		private NodeMaster _master;
 		private string _id;
 
-		public GameNodeConnection(Netki.ConnectionOutput output, NodeMaster master)
+		public GameNodeConnection(ConnectionOutput output, NodeMaster master)
 		{
 			_output = output;
-			_decoder = new Netki.BufferedPacketDecoder(2*65536, master.GetPacketHandler());
+			_decoder = new BufferedPacketDecoder(2*65536, master.GetPacketHandler());
 			_master = master;
 			_id = null;
 		}
@@ -66,7 +66,7 @@ namespace Cube
 		}
 	}
 
-	public class NodeConnectionHandler : Netki.StreamConnectionHandler
+	public class NodeConnectionHandler : StreamConnectionHandler
 	{
 		NodeMaster _master;
 
@@ -80,7 +80,7 @@ namespace Cube
 
 		}
 
-		public Netki.StreamConnection OnConnected(int connection_id, Netki.ConnectionOutput output)
+		public StreamConnection OnConnected(int connection_id, ConnectionOutput output)
 		{
 			return new GameNodeConnection(output, _master);
 		}

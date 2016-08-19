@@ -27,6 +27,7 @@ namespace Cube
 		void HandleDatagrams(ServerDatagram[] datagrams, uint count);
 		bool GetOutgoingDatagrams(ServerDatagram[] output, out uint count);
 		void Update();
+		int GetPort();
 		Netki.GameNodeGameStatus GetStatus();
 		bool CanShutdown();
 		string GetVersionString();
