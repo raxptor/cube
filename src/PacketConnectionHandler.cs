@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Netki
+namespace Cube
 {
 	public interface ConnectionOutput
 	{
