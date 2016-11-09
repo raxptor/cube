@@ -32,7 +32,7 @@ namespace Cube
 		{
 			public string Address;
 			public string AuthToken;
-            public string KnockToken;
+			public string KnockToken;
 		}
 
 		public class ResponseRedirectionEntry
@@ -62,7 +62,7 @@ namespace Cube
 
 		public NodeMaster()
 		{
-            _app_packet_handler = new MasterPacketsHandler();
+			_app_packet_handler = new MasterPacketsHandler();
 			_node_serv = new PacketStreamServer(new NodeConnectionHandler(this));
 			_client_serv = new PacketStreamServer(new ClientConnectionHandler(this));
 			_update_thread = new Thread(UpdateThread);
@@ -86,7 +86,7 @@ namespace Cube
 					string mix = "aschja23" + _token_random.NextDouble() + "-baberiba-" + DateTime.Now + "_" + DateTime.Now.Millisecond + "_" + (_token_counter) + " servertime=" + _token_start;
 					var computedHash = sha.ComputeHash(System.Text.Encoding.ASCII.GetBytes(mix));
 					var token = Convert.ToBase64String(computedHash);
-                    Debug.MasterLog("Token from [" + mix +"] made [" + token + "]");
+					Debug.MasterLog("Token from [" + mix + "] made [" + token + "]");
 					return token;
 				}
 			}
@@ -118,7 +118,7 @@ namespace Cube
 				r.Connection = Connection;
 				_instances.Add(info.NodeId, r);
 			}
-            Debug.MasterLog("Added instance [" + info.NodeId + "]");
+			Debug.MasterLog("Added instance [" + info.NodeId + "]");
 		}
 
 		// These will not be more than one per connection.
@@ -140,12 +140,12 @@ namespace Cube
 			{
 				case Netki.GameNodePing.TYPE_ID:
 					{
-						Netki.GameNodePing ping = (Netki.GameNodePing) p;
+						Netki.GameNodePing ping = (Netki.GameNodePing)p;
 						lock (_instances)
 						{
 							NodeRecord node;
 							if (_instances.TryGetValue(nodeId, out node))
-							{	
+							{
 								uint diff = ((uint)DateTime.UtcNow.Ticks) - ping.Time;
 								node.Lag = (int)diff / 10000.0f;
 							}
@@ -165,8 +165,8 @@ namespace Cube
 					}
 				case Netki.GameNodePlayerIsOnGames.TYPE_ID:
 					{
-						Netki.GameNodePlayerIsOnGames pkt = (Netki.GameNodePlayerIsOnGames) p;
-                        Debug.MasterLog("Response from [" + nodeId + "] player " + pkt.PlayerId + " is on " + pkt.GameIds.Length + " games");
+						Netki.GameNodePlayerIsOnGames pkt = (Netki.GameNodePlayerIsOnGames)p;
+						Debug.MasterLog("Response from [" + nodeId + "] player " + pkt.PlayerId + " is on " + pkt.GameIds.Length + " games");
 
 						// clean up junk
 						if (pkt.GameIds.Length == 0)
@@ -196,7 +196,7 @@ namespace Cube
 					}
 				case Netki.GameNodeGamesList.TYPE_ID:
 					{
-						Netki.GameNodeGamesList list = (Netki.GameNodeGamesList) p;
+						Netki.GameNodeGamesList list = (Netki.GameNodeGamesList)p;
 						string[] configs = null;
 
 						lock (_instances)
@@ -209,48 +209,48 @@ namespace Cube
 							}
 						}
 
-                        Debug.MasterLog("Node ping response [" + nodeId + "] (lag:" + _instances[nodeId].Lag + " ms)");
-						for (int i=0;i<list.Games.Length;i++)
+						Debug.MasterLog("Node ping response [" + nodeId + "] (lag:" + _instances[nodeId].Lag + " ms)");
+						for (int i = 0; i < list.Games.Length; i++)
 						{
-                            Debug.MasterLog("G" + i + " [" + list.Games[i].Id + "] addr=" + list.Games[i].Address + " conf=" + list.Games[i].Configuration + " info=" + list.Games[i].Info + " free=" + list.Games[i].Status.PlayerSlotsLeft + " players=" + list.Games[i].Status.PlayersJoined);
+							Debug.MasterLog("G" + i + " [" + list.Games[i].Id + "] addr=" + list.Games[i].Address + " conf=" + list.Games[i].Configuration + " info=" + list.Games[i].Info + " free=" + list.Games[i].Status.PlayerSlotsLeft + " players=" + list.Games[i].Status.PlayersJoined);
 						}
 						if (configs != null)
 						{
-                            foreach (string s in configs)
-                            {
-                                Debug.MasterLog("    " + nodeId + " accepts configuration [" + s + "]");
-                            }
+							foreach (string s in configs)
+							{
+								Debug.MasterLog("    " + nodeId + " accepts configuration [" + s + "]");
+							}
 						}
 
-                        Debug.MasterLog("--------");
+						Debug.MasterLog("--------");
 						return;
 					}
 				case Netki.GameNodeCreateGameResponse.TYPE_ID:
 					{
-						Netki.GameNodeCreateGameResponse resp = (Netki.GameNodeCreateGameResponse) p;
+						Netki.GameNodeCreateGameResponse resp = (Netki.GameNodeCreateGameResponse)p;
 						if (resp.GameId != null)
 						{
-                            Debug.MasterLog("Node [" + nodeId + "] created requested game [" + resp.GameId + "]");
+							Debug.MasterLog("Node [" + nodeId + "] created requested game [" + resp.GameId + "]");
 						}
 						else
 						{
 							// should downprioritize this node...
-                            Debug.MasterLog("Node [" + nodeId + "] failed to create requested game");
+							Debug.MasterLog("Node [" + nodeId + "] failed to create requested game");
 						}
 						lock (_instances)
 						{
 							if (_instances.ContainsKey(nodeId))
 							{
 								_instances[nodeId].PendingCreateRequests--;
-                                Debug.MasterLog("Node [" + nodeId + "] pendingRequests=" + _instances[nodeId].PendingCreateRequests);
+								Debug.MasterLog("Node [" + nodeId + "] pendingRequests=" + _instances[nodeId].PendingCreateRequests);
 							}
 						}
 						return;
 					}
 				case Netki.GameNodeAuthPlayer.TYPE_ID:
 					{
-						Netki.GameNodeAuthPlayer auth = (Netki.GameNodeAuthPlayer) p;
-                        Debug.MasterLog("Node [" + nodeId + "] responded to auth success=" + auth.Success);
+						Netki.GameNodeAuthPlayer auth = (Netki.GameNodeAuthPlayer)p;
+						Debug.MasterLog("Node [" + nodeId + "] responded to auth success=" + auth.Success);
 						lock (_auth)
 						{
 							if (_auth.ContainsKey(auth.RequestId))
@@ -259,10 +259,10 @@ namespace Cube
 							// store authorization
 							if (auth.Success)
 							{
-								Authorization na = new Authorization();								
+								Authorization na = new Authorization();
 								na.AuthToken = auth.AuthToken;
-                                na.KnockToken = auth.KnockToken;
-                                na.Address = auth.Address;
+								na.KnockToken = auth.KnockToken;
+								na.Address = auth.Address;
 								_auth[auth.RequestId] = na;
 							}
 							else
@@ -300,7 +300,7 @@ namespace Cube
 				if (_instances.ContainsKey(Id))
 					_instances[Id].Connection = null;
 			}
-            Debug.MasterLog("Disconnecting instance " + Id);
+			Debug.MasterLog("Disconnecting instance " + Id);
 		}
 
 
@@ -313,8 +313,8 @@ namespace Cube
 
 				foreach (NodeRecord nr in _instances.Values)
 				{
-                    Debug.MasterLog("Node canditate " + nr.Connection + " " + nr.Info.Games.IsDynamic + " " + nr.Info.Games.Used
-						+ " " + nr.PendingCreateRequests + " " + nr.Info.Games.MaxLimit);
+					Debug.MasterLog("Node canditate " + nr.Connection + " " + nr.Info.Games.IsDynamic + " " + nr.Info.Games.Used
+							    + " " + nr.PendingCreateRequests + " " + nr.Info.Games.MaxLimit);
 					if (nr.Connection == null)
 						continue;
 					if (!nr.Info.Games.IsDynamic)
@@ -323,7 +323,7 @@ namespace Cube
 						continue;
 					if ((nr.Info.Games.Used + nr.PendingCreateRequests) >= nr.Info.Games.MaxLimit)
 						continue;
-					
+
 					bool match = false;
 					foreach (string pattern in nr.AcceptedConfigurations)
 					{
@@ -348,14 +348,14 @@ namespace Cube
 				// randomize
 				if (candidates.Count == 0)
 				{
-                    Debug.MasterLog("There are no nodes left for spawning!");
+					Debug.MasterLog("There are no nodes left for spawning!");
 					return false;
 				}
-					
+
 				Random r = new Random();
 				int pick = r.Next() % candidates.Count;
 
-                Debug.MasterLog("Picked for create:" + pick);
+				Debug.MasterLog("Picked for create:" + pick);
 
 				// Temp bump this number.
 				candidates[pick].PendingCreateRequests++;
@@ -397,7 +397,7 @@ namespace Cube
 
 							lock (_instances)
 							{
-								for (int i=0;nodes != null && i<nodes.Length;i++)
+								for (int i = 0; nodes != null && i < nodes.Length; i++)
 								{
 									if (!_instances.ContainsKey(nodes[i]))
 										continue;
@@ -442,7 +442,7 @@ namespace Cube
 						}
 					case Netki.MasterJoinGameRequest.TYPE_ID:
 						{
-							Netki.MasterJoinGameRequest r = (Netki.MasterJoinGameRequest) req.Request;
+							Netki.MasterJoinGameRequest r = (Netki.MasterJoinGameRequest)req.Request;
 							lock (_instances)
 							{
 								foreach (NodeRecord nr in _instances.Values)
@@ -450,12 +450,12 @@ namespace Cube
 									if (nr.Connection == null)
 										continue;
 									Netki.GameNodeGameInfo[] games = nr.Info.Games.Games;
-									for (int i=0;i<games.Length;i++)
+									for (int i = 0; i < games.Length; i++)
 									{
 										if (games[i].Id == r.GameId && games[i].JoinableByName)
-										{											
-											req.RequestId = MakeToken();											
-                                            // No knock token since those are generated by the game node.
+										{
+											req.RequestId = MakeToken();
+											// No knock token since those are generated by the game node.
 											Netki.GameNodeAuthPlayer auth = new Netki.GameNodeAuthPlayer();
 											auth.PlayerId = req.Connection.GetPlayerId();
 											auth.AuthToken = MakeToken();
@@ -474,7 +474,7 @@ namespace Cube
 						}
 					case Netki.MasterJoinConfigurationRequest.TYPE_ID:
 						{
-							Netki.MasterJoinConfigurationRequest r = (Netki.MasterJoinConfigurationRequest) req.Request;
+							Netki.MasterJoinConfigurationRequest r = (Netki.MasterJoinConfigurationRequest)req.Request;
 							if (FinalizeJoinConfigurationRequest(req.Connection, r, req.RetryCounter))
 								return true;
 
@@ -482,7 +482,7 @@ namespace Cube
 							{
 								// The idea is that other clients might have maxed out the spawn requests
 								// and so there will appear games with this configuration.
-                                Debug.MasterLog("Spawn failed but will hang around still");
+								Debug.MasterLog("Spawn failed but will hang around still");
 							}
 						}
 						return false;
@@ -493,7 +493,7 @@ namespace Cube
 			switch (req.Request.type_id)
 			{
 				case Netki.MasterJoinConfigurationRequest.TYPE_ID:
-					if (FinalizeJoinConfigurationRequest(req.Connection, (Netki.MasterJoinConfigurationRequest) req.Request, req.RetryCounter))
+					if (FinalizeJoinConfigurationRequest(req.Connection, (Netki.MasterJoinConfigurationRequest)req.Request, req.RetryCounter))
 						return true;
 					break;
 				case Netki.MasterJoinGameRequest.TYPE_ID:
@@ -501,7 +501,7 @@ namespace Cube
 						// Malformed
 						if (req.RequestId == null || req.RequestId.Length == 0)
 						{
-                            Debug.MasterLog("Encountered empty request id");
+							Debug.MasterLog("Encountered empty request id");
 							return true;
 						}
 
@@ -516,17 +516,17 @@ namespace Cube
 								if (auth != null)
 								{
 									resp.Address = auth.Address;
-                                    resp.KnockToken = auth.KnockToken;
-                                    resp.AuthToken = auth.AuthToken;
+									resp.KnockToken = auth.KnockToken;
+									resp.AuthToken = auth.AuthToken;
 									req.Connection.SendPacket(resp);
 								}
 								else if (req.OriginalRequest == null || req.RetryCounter > 5)
 								{
 									req.Connection.SendPacket(resp);
 								}
-								else 
+								else
 								{
-                                    Debug.MasterLog("Retrying request RetryCounter=" + req.RetryCounter);
+									Debug.MasterLog("Retrying request RetryCounter=" + req.RetryCounter);
 									retry = true;
 								}
 
@@ -564,16 +564,16 @@ namespace Cube
 				{
 					if (nr.Connection == null)
 						continue;
-					
+
 					foreach (Netki.GameNodeGameInfo gi in nr.Info.Games.Games)
 					{
-                        Debug.MasterLog(gi.Id + " PlayerSlotsLeft=" + gi.Status.PlayerSlotsLeft + " joinable=" + gi.JoinableByName);
+						Debug.MasterLog(gi.Id + " PlayerSlotsLeft=" + gi.Status.PlayerSlotsLeft + " joinable=" + gi.JoinableByName);
 						if (!gi.JoinableByConfig || !gi.JoinableByName || gi.Status.PlayerSlotsLeft < 1)
 							continue;
 
 						if (gi.Configuration == req.Configuration)
 						{
-                            Debug.MasterLog("Matched game! Temp reducing player slots left.");
+							Debug.MasterLog("Matched game! Temp reducing player slots left.");
 							gameId = gi.Id;
 							gi.Status.PlayerSlotsLeft--;
 							break;
@@ -590,7 +590,7 @@ namespace Cube
 				Netki.MasterJoinGameRequest jgr = new Netki.MasterJoinGameRequest();
 				jgr.GameId = gameId;
 
-                Debug.MasterLog("Mutating request to MasterJoinGameRequest onto " + gameId);
+				Debug.MasterLog("Mutating request to MasterJoinGameRequest onto " + gameId);
 				RequestEntry nreq = new RequestEntry();
 				nreq.Connection = connection;
 				nreq.Request = jgr;
@@ -607,7 +607,7 @@ namespace Cube
 
 		public void UpdateThread()
 		{
-            Debug.MasterLog("Started update loop");
+			Debug.MasterLog("Started update loop");
 			int toPing = 0;
 			while (true)
 			{
@@ -621,13 +621,13 @@ namespace Cube
 						int totalPlayers = 0;
 						foreach (NodeRecord node in _instances.Values)
 						{
-							for (int q=0;q<node.Info.Games.Games.Length;q++)
+							for (int q = 0; q < node.Info.Games.Games.Length; q++)
 								totalPlayers += (int)node.Info.Games.Games[q].Status.PlayersJoined;
 							if (node.Connection == null)
 								continue;
 							node.Connection.SendPacket(ping);
 						}
-                        Debug.MasterLog("Total players:" + totalPlayers + " | CONNECTIONS = clients:" + _client_serv.GetNumConnections() + " nodes:" + _node_serv.GetNumConnections());
+						Debug.MasterLog("Total players:" + totalPlayers + " | CONNECTIONS = clients:" + _client_serv.GetNumConnections() + " nodes:" + _node_serv.GetNumConnections());
 					}
 					toPing = 0;
 				}
@@ -642,14 +642,14 @@ namespace Cube
 					{
 						if (entry.Value.Expires < cur)
 						{
-                            Debug.MasterLog("Response redirection timed out with references=" + entry.Value.References);
+							Debug.MasterLog("Response redirection timed out with references=" + entry.Value.References);
 							toRemove.Add(entry.Key);
 						}
 					}
 					foreach (string s in toRemove)
 						_response_redir.Remove(s);
 				}
-					
+
 				while (true)
 				{
 					bool OneMoreTime = false;
@@ -657,9 +657,9 @@ namespace Cube
 					int start = _requests.Count;
 					lock (_requests)
 					{
-						for (int i=0;i<_requests.Count;i++)
+						for (int i = 0; i < _requests.Count; i++)
 						{
-							RequestEntry req =_requests[i];
+							RequestEntry req = _requests[i];
 							if (req.TicksWaited == 0)
 								OneMoreTime = true;
 
@@ -668,7 +668,7 @@ namespace Cube
 							{
 								if (req.TicksWaited > TickLimit)
 								{
-                                    Debug.MasterLog("Request timed out, sending join failed..");
+									Debug.MasterLog("Request timed out, sending join failed..");
 									Netki.MasterJoinGameResponse fail = new Netki.MasterJoinGameResponse();
 									req.Connection.SendPacket(fail);
 								}
@@ -683,10 +683,10 @@ namespace Cube
 						}
 					}
 
-                    if (start > 0 || removed > 0)
-                    {
-                        Debug.MasterLog("RequestsStart:" + start + " Removed:" + removed + " Current:" + _requests.Count);
-                    }
+					if (start > 0 || removed > 0)
+					{
+						Debug.MasterLog("RequestsStart:" + start + " Removed:" + removed + " Current:" + _requests.Count);
+					}
 
 					if (!OneMoreTime)
 						break;

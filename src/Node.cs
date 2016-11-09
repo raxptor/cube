@@ -30,7 +30,6 @@ namespace Cube
 		public List<Authorization> auth;
 		public Dictionary<string, DateTime> rejoin = new Dictionary<string, DateTime>();
 		public DateTime lastActive;
-
 		public ServerDatagram[] datagrams;
 		public uint numDatagrams;
 	}
@@ -48,15 +47,13 @@ namespace Cube
 		int _updateRate;
 
 		string _masterAddress;
-		string _myAddress;
 
 		string[] _configurations;
 
-		public Node(IGameSpawner spawner, string id, string[] configurations, int maxInstances, int updateRateMs, string masterAddress, string myAddress)
+		public Node(IGameSpawner spawner, string id, string[] configurations, int maxInstances, int updateRateMs, string masterAddress)
 		{
 			_app_packet_handler = new MasterPacketsHandler();
 			_masterAddress = masterAddress;
-			_myAddress = myAddress;
 			_configurations = configurations;
 			_masterThread = new Thread(MasterThread);
 			_updateThread = new Thread(UpdateThread);
@@ -181,7 +178,7 @@ namespace Cube
 					list.Games[i].Id = _instances[i].id;
 					list.Games[i].Info = _instances[i].info;
 					list.Games[i].Status = _instances[i].server.GetStatus();
-					list.Games[i].Address = _myAddress + ":" + _instances[i].server.GetPort();
+					list.Games[i].Address = _instances[i].server.GetAddress();
 
 					foreach (string pl in _instances[i].rejoin.Keys)
 					{
@@ -279,7 +276,7 @@ namespace Cube
 										r.auth.Add(auth);
 										// send packet back as ack.
 										ap.Success = true;
-										ap.Address = _myAddress + ":" + r.server.GetPort();
+										ap.Address = r.server.GetAddress();
 										ap.KnockToken = MakeKnockToken();
 										r.server.GiveKnockTocken(ap.KnockToken, delegate
 										{
