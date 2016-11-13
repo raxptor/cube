@@ -20,6 +20,7 @@ namespace Cube
 
 	public delegate void OnTokenConsumed(string Which);
 
+	//
 	public interface IGameInstServer
 	{
 		bool CanPlayerReconnect(string playerId);
