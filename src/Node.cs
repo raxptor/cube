@@ -148,7 +148,14 @@ namespace Cube
 						if (age.TotalSeconds > 15)
 						{
 							Debug.NodeLog("Removing game instance " + _instances[i].id);
-							_instances[i].server.Shutdown();
+							try 
+							{
+								_instances[i].server.Shutdown();
+							}
+							catch (Exception e)
+							{
+								Debug.NodeLog("Ecxeption during shutdown: " + e.ToString());
+							}
 							_instances.RemoveAt(i--);
 						}
 					}
@@ -346,7 +353,14 @@ namespace Cube
 					{
 						foreach (GameInstRecord r in _instances)
 						{
-							r.server.Update();
+							try
+							{
+								r.server.Update();
+							}
+							catch (Exception e)
+							{
+								Debug.NodeLog("Exception during update!" + e.ToString());
+							}
 						}
 					}
 					next = next.AddMilliseconds(_updateRate);
