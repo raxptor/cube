@@ -148,6 +148,7 @@ namespace Cube
 						if (age.TotalSeconds > 15)
 						{
 							Debug.NodeLog("Removing game instance " + _instances[i].id);
+							_instances[i].server.Shutdown();
 							_instances.RemoveAt(i--);
 						}
 					}

@@ -29,6 +29,7 @@ namespace Cube
 		string GetAddress();
 		Netki.GameNodeGameStatus GetStatus();
 		bool CanShutdown();
+		void Shutdown();
 		string GetVersionString();
 	}
 
