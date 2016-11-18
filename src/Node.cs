@@ -421,6 +421,9 @@ namespace Cube
 					conf.Patterns = _configurations;
 					xchange(conf);
 
+					// it should be polled regularly
+					socket.ReceiveTimeout = 7000;
+
 					while (true)
 					{
 						int read = socket.Receive(rbuf);
