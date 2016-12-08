@@ -26,7 +26,9 @@ namespace Cube
 				try
 				{
 					if (socket.Connected)
+					{
 						socket.Send(data, offset, length, 0);
+					}
 				}
 				catch (System.Net.Sockets.SocketException)
 				{
@@ -44,29 +46,29 @@ namespace Cube
 		{
 			_handler = handler;
 		}
-            
-        private void InternalOnDisconnected(int connection_id)
-        {            
-            Console.WriteLine("Connection disconnected (" + connection_id + ")");
-            Connection conn = _connections[connection_id];
-            conn.conn.OnDisconnected();
-            _connections[connection_id] = null;
 
-            lock (_free_connections)
-            {
-                _free_connections.Add(connection_id);
-            }
+		private void InternalOnDisconnected(int connection_id)
+		{
+			Console.WriteLine("Connection disconnected (" + connection_id + ")");
+			Connection conn = _connections[connection_id];
+			conn.conn.OnDisconnected();
+			_connections[connection_id] = null;
 
-            try
-            {
-                conn.socket.Close();
-            }
-            catch (Exception)
-            {
+			lock (_free_connections)
+			{
+				_free_connections.Add(connection_id);
+			}
 
-            }
-        }
-       
+			try
+			{
+				conn.socket.Close();
+			}
+			catch (Exception)
+			{
+
+			}
+		}
+
 
 		public void OnAsyncReceive(IAsyncResult result)
 		{
@@ -74,19 +76,19 @@ namespace Cube
 			Connection conn = _connections[connection_id];
 
 			int ret;
-			try 
+			try
 			{
 				ret = conn.socket.EndReceive(result);
 			}
 			catch (Exception)
 			{
-                InternalOnDisconnected(connection_id);
-                return;
+				InternalOnDisconnected(connection_id);
+				return;
 			}
-				
+
 			if (ret <= 0)
 			{
-
+				InternalOnDisconnected(connection_id);
 			}
 			else
 			{
@@ -102,14 +104,14 @@ namespace Cube
 						rp += amt;
 					}
 				}
-                try
-                {
-				    conn.socket.BeginReceive(conn.recvbuf, 0, conn.recvbuf.Length, 0, OnAsyncReceive, connection_id);
-                }
-                catch (Exception)
-                {
-                    InternalOnDisconnected(connection_id);
-                }
+				try
+				{
+					conn.socket.BeginReceive(conn.recvbuf, 0, conn.recvbuf.Length, 0, OnAsyncReceive, connection_id);
+				}
+				catch (Exception)
+				{
+					InternalOnDisconnected(connection_id);
+				}
 			}
 		}
 
@@ -132,6 +134,7 @@ namespace Cube
 					c.conn = _handler.OnConnected(connection_id, c);
 					_connections[connection_id] = c;
 
+					nsock.ReceiveTimeout = 5*60*1000; // 5 min
 					nsock.BeginReceive(c.recvbuf, 0, c.recvbuf.Length, 0, OnAsyncReceive, connection_id);
 				}
 				else
@@ -165,7 +168,7 @@ namespace Cube
 				_free_connections.Add(max_connections - i - 1);
 
 			IPEndPoint localEP = new IPEndPoint(0, port);
-            _listener = new Socket(localEP.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			_listener = new Socket(localEP.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			_listener.Bind(localEP);
 			_listener.Listen(100);
 			_listener.BeginAccept(OnAsyncAccepted, _listener);
