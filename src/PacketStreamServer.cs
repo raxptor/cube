@@ -8,7 +8,8 @@ namespace Cube
 	public class PacketStreamServer
 	{
 		private StreamConnectionHandler _handler;
-		private Socket _listener;
+		private Socket _listener4;
+		private Socket _listener6;
 
 		class Connection : ConnectionOutput
 		{
@@ -115,9 +116,9 @@ namespace Cube
 			}
 		}
 
-		public void OnAsyncAccepted(IAsyncResult result)
+		public void OnAsyncAccepted4(IAsyncResult result)
 		{
-			Socket nsock = _listener.EndAccept(result);
+			Socket nsock = _listener4.EndAccept(result);
 
 			lock (_free_connections)
 			{
@@ -144,7 +145,40 @@ namespace Cube
 				}
 			}
 
-			_listener.BeginAccept(OnAsyncAccepted, _listener);
+			_listener4.BeginAccept(OnAsyncAccepted4, _listener4);
+		}
+
+
+		public void OnAsyncAccepted6(IAsyncResult result)
+		{
+			Socket nsock = _listener6.EndAccept(result);
+
+			lock (_free_connections)
+			{
+				// Occupy new slot.
+				int pos = _free_connections.Count - 1;
+				if (pos >= 0)
+				{
+					int connection_id = _free_connections[pos];
+					_free_connections.RemoveAt(pos);
+
+					Connection c = new Connection();
+					c.socket = nsock;
+					c.recvbuf = new byte[4096];
+					c.conn = _handler.OnConnected(connection_id, c);
+					_connections[connection_id] = c;
+
+					nsock.ReceiveTimeout = 5 * 60 * 1000; // 5 min
+					nsock.BeginReceive(c.recvbuf, 0, c.recvbuf.Length, 0, OnAsyncReceive, connection_id);
+				}
+				else
+				{
+					Console.WriteLine("Dropping connection because i am full");
+					nsock.Close();
+				}
+			}
+
+			_listener6.BeginAccept(OnAsyncAccepted6, _listener6);
 		}
 
 		public int GetNumConnections()
@@ -157,7 +191,7 @@ namespace Cube
 
 		public int GetPort()
 		{
-			return ((IPEndPoint)_listener.LocalEndPoint).Port;
+			return ((IPEndPoint)_listener4.LocalEndPoint).Port;
 		}
 
 		// returns port.
@@ -167,13 +201,17 @@ namespace Cube
 			for (int i = 0; i < max_connections; i++)
 				_free_connections.Add(max_connections - i - 1);
 
-			IPEndPoint localEP = new IPEndPoint(0, port);
-			_listener = new Socket(localEP.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-			_listener.Bind(localEP);
-			_listener.Listen(100);
-			_listener.BeginAccept(OnAsyncAccepted, _listener);
+			IPEndPoint localEP4 = new IPEndPoint(IPAddress.Any, port);
+			_listener4 = new Socket(localEP4.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			_listener4.Bind(localEP4);
+			_listener4.Listen(100);
+			_listener4.BeginAccept(OnAsyncAccepted4, _listener4);
 
-			localEP = (IPEndPoint)_listener.LocalEndPoint;
+			IPEndPoint localEP6 = new IPEndPoint(IPAddress.IPv6Any, port);
+			_listener6 = new Socket(localEP6.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			_listener6.Bind(localEP6);
+			_listener6.Listen(100);
+			_listener6.BeginAccept(OnAsyncAccepted6, _listener4);
 		}
 	}
 }

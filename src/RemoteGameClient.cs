@@ -37,8 +37,10 @@ namespace Cube
 			IPAddress addr = null;
 			foreach (IPAddress e in Dns.GetHostEntry(_host).AddressList)
 			{
-				if (e.AddressFamily == AddressFamily.InterNetwork)
+				if (e.AddressFamily == AddressFamily.InterNetwork || e.AddressFamily == AddressFamily.InterNetworkV6)
+				{
 					addr = e;
+				}
 			}
 
 			if (addr == null)
@@ -50,7 +52,7 @@ namespace Cube
 			IPEndPoint remoteEP = new IPEndPoint(addr, (int)_port);
 			IPEndPoint localEP = new IPEndPoint(0, 0);
 
-			_socket = new Socket(localEP.Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+			_socket = new Socket(remoteEP.Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 			_socket.Bind(localEP);
 			_socket.Connect(remoteEP);
 			_socket.BeginReceiveFrom(_udp_buf, 0, _udp_buf.Length, 0, ref _udp_remote, OnUdpData, _socket);

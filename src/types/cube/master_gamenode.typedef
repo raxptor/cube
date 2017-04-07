@@ -21,7 +21,8 @@ GameNodeGameInfo @netki
 {
 	string Id
 	string Configuration
-	string Address
+	string Host
+	int Port
 	string Info
 	string[] RejoinPlayers
 	GameNodeGameStatus Status
@@ -35,9 +36,10 @@ GameNodeAuthPlayer @netki
 	string PlayerId
 	string RequestId	
 	// for allowing udp connect
-	string Address	
-	string KnockToken	
-	// actual authentication 	
+	string Host
+	int Port
+	string KnockToken
+	// actual authentication
 	string AuthToken
 	bool Success
 	bool IsRejoin

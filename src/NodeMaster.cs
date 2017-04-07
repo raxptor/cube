@@ -30,7 +30,8 @@ namespace Cube
 
 		public class Authorization
 		{
-			public string Address;
+			public string Host;
+			public int Port;
 			public string AuthToken;
 			public string KnockToken;
 		}
@@ -212,7 +213,7 @@ namespace Cube
 						Debug.MasterLog("Node ping response [" + nodeId + "] (lag:" + _instances[nodeId].Lag + " ms)");
 						for (int i = 0; i < list.Games.Length; i++)
 						{
-							Debug.MasterLog("G" + i + " [" + list.Games[i].Id + "] addr=" + list.Games[i].Address + " conf=" + list.Games[i].Configuration + " info=" + list.Games[i].Info + " free=" + list.Games[i].Status.PlayerSlotsLeft + " players=" + list.Games[i].Status.PlayersJoined);
+							Debug.MasterLog("G" + i + " [" + list.Games[i].Id + "] host=" + list.Games[i].Host + " port=" + list.Games[i].Port + " conf=" + list.Games[i].Configuration + " info=" + list.Games[i].Info + " free=" + list.Games[i].Status.PlayerSlotsLeft + " players=" + list.Games[i].Status.PlayersJoined);
 						}
 						if (configs != null)
 						{
@@ -262,7 +263,8 @@ namespace Cube
 								Authorization na = new Authorization();
 								na.AuthToken = auth.AuthToken;
 								na.KnockToken = auth.KnockToken;
-								na.Address = auth.Address;
+								na.Host = auth.Host;
+								na.Port = auth.Port;
 								_auth[auth.RequestId] = na;
 							}
 							else
@@ -515,7 +517,8 @@ namespace Cube
 								Netki.MasterJoinGameResponse resp = new Netki.MasterJoinGameResponse();
 								if (auth != null)
 								{
-									resp.Address = auth.Address;
+									resp.Host = auth.Host;
+									resp.Port = auth.Port;
 									resp.KnockToken = auth.KnockToken;
 									resp.AuthToken = auth.AuthToken;
 									req.Connection.SendPacket(resp);

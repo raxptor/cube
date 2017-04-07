@@ -26,7 +26,8 @@ namespace Cube
 		bool CanPlayerReconnect(string playerId);
 		void GiveKnockTocken(string token, OnTokenConsumed consumed);
 		void Update();
-		string GetAddress();
+		string GetHost();
+		int GetPort();
 		Netki.GameNodeGameStatus GetStatus();
 		bool CanShutdown();
 		void Shutdown();

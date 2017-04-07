@@ -38,7 +38,8 @@ MasterJoinConfigurationRequest @netki
 
 MasterJoinGameResponse @netki
 {
-	string Address
+	string Host
+	int Port
 	string AuthToken
 	string KnockToken
 }

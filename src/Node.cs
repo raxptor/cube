@@ -186,7 +186,8 @@ namespace Cube
 					list.Games[i].Id = _instances[i].id;
 					list.Games[i].Info = _instances[i].info;
 					list.Games[i].Status = _instances[i].server.GetStatus();
-					list.Games[i].Address = _instances[i].server.GetAddress();
+					list.Games[i].Host= _instances[i].server.GetHost();
+					list.Games[i].Port = _instances[i].server.GetPort();
 
 					foreach (string pl in _instances[i].rejoin.Keys)
 					{
@@ -284,7 +285,8 @@ namespace Cube
 										r.auth.Add(auth);
 										// send packet back as ack.
 										ap.Success = true;
-										ap.Address = r.server.GetAddress();
+										ap.Host = r.server.GetHost();
+										ap.Port = r.server.GetPort();
 										ap.KnockToken = MakeKnockToken();
 										r.server.GiveKnockTocken(ap.KnockToken, delegate
 										{
@@ -388,12 +390,12 @@ namespace Cube
 
 				foreach (var p in ipHostInfo.AddressList)
 				{
-					if (p.AddressFamily == AddressFamily.InterNetwork)
+					if (p.AddressFamily == AddressFamily.InterNetwork || p.AddressFamily == AddressFamily.InterNetworkV6)
 						ipAddress = p;
 				}
 
 				IPEndPoint remoteEP = new IPEndPoint(ipAddress, NodeMaster.DEFAULT_NODE_PORT);
-				Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+				Socket socket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
 				// Connect the socket to the remote endpoint. Catch any errors.
 				try
