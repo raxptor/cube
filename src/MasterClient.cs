@@ -184,7 +184,7 @@ namespace Cube
 			}
 
 			IPAddress addr = null;
-			foreach (IPAddress e in Dns.GetHostEntry(_host).AddressList)
+			foreach (IPAddress e in Dns.GetHostAddresses(_host))
 			{
 				if (e.AddressFamily == AddressFamily.InterNetwork || e.AddressFamily == AddressFamily.InterNetworkV6)
 				{

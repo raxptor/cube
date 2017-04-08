@@ -385,10 +385,8 @@ namespace Cube
 		{
 			while (true)
 			{
-				IPHostEntry ipHostInfo = Dns.GetHostEntry(_masterAddress);
 				IPAddress ipAddress = null;
-
-				foreach (var p in ipHostInfo.AddressList)
+				foreach (var p in Dns.GetHostAddresses(_masterAddress))
 				{
 					if (p.AddressFamily == AddressFamily.InterNetwork || p.AddressFamily == AddressFamily.InterNetworkV6)
 						ipAddress = p;

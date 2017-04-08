@@ -200,18 +200,26 @@ namespace Cube
 			_connections = new Connection[max_connections];
 			for (int i = 0; i < max_connections; i++)
 				_free_connections.Add(max_connections - i - 1);
-
+			
 			IPEndPoint localEP4 = new IPEndPoint(IPAddress.Any, port);
 			_listener4 = new Socket(localEP4.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			_listener4.Bind(localEP4);
 			_listener4.Listen(100);
 			_listener4.BeginAccept(OnAsyncAccepted4, _listener4);
 
-			IPEndPoint localEP6 = new IPEndPoint(IPAddress.IPv6Any, port);
-			_listener6 = new Socket(localEP6.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-			_listener6.Bind(localEP6);
-			_listener6.Listen(100);
-			_listener6.BeginAccept(OnAsyncAccepted6, _listener4);
+			try
+			{
+				IPEndPoint localEP6 = new IPEndPoint(IPAddress.IPv6Any, port);
+				_listener6 = new Socket(localEP6.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+				_listener6.Bind(localEP6);
+				_listener6.Listen(100);
+				_listener6.BeginAccept(OnAsyncAccepted6, _listener6);
+			}
+			catch (Exception)
+			{
+				Console.WriteLine("Couldnt't/didn't need to start ipv4 port");
+			}
+
 		}
 	}
 }
