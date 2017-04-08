@@ -7,8 +7,8 @@ namespace Cube
 {
 	public class NodeMaster
 	{
-		public const int DEFAULT_NODE_PORT = 8100;
-		public const int DEFAULT_CLIENT_PORT = 8101;
+		public const int DEFAULT_NODE_PORT = 8200;
+		public const int DEFAULT_CLIENT_PORT = 8201;
 
 		class NodeRecord
 		{
