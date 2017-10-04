@@ -393,63 +393,64 @@ namespace Cube
 				}
 
 				IPEndPoint remoteEP = new IPEndPoint(ipAddress, NodeMaster.DEFAULT_NODE_PORT);
-				Socket socket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-				// Connect the socket to the remote endpoint. Catch any errors.
-				try
+				using (Socket socket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
 				{
-					Debug.NodeLog("Connecting to master " + _masterAddress);
-					socket.Connect(remoteEP);
-
-					Debug.NodeLog("Sending id packet");
-					Netki.GameNodeInfo info = new Netki.GameNodeInfo();
-					info.Games = MakeGamesList();
-					info.NodeId = _id;
-					Netki.Bitstream.Buffer buf = _app_packet_handler.MakePacket(info);
-					socket.Send(buf.buf, 0, (int)buf.bytesize, 0);
-
-					BufferedPacketDecoder pdec = new BufferedPacketDecoder(65536, _app_packet_handler);
-					byte[] rbuf = new byte[65536];
-
-					PacketExchangeDelegate xchange = delegate (Netki.Packet p)
+					// Connect the socket to the remote endpoint. Catch any errors.
+					try
 					{
-						Netki.Bitstream.Buffer b = _app_packet_handler.MakePacket(p);
-						socket.Send(b.buf, 0, (int)b.bytesize, 0);
-					};
+						Debug.NodeLog("Connecting to master " + _masterAddress);
+						socket.Connect(remoteEP);
 
-					Netki.GameNodeConfigurationsSupport conf = new Netki.GameNodeConfigurationsSupport();
-					conf.Patterns = _configurations;
-					xchange(conf);
+						Debug.NodeLog("Sending id packet");
+						Netki.GameNodeInfo info = new Netki.GameNodeInfo();
+						info.Games = MakeGamesList();
+						info.NodeId = _id;
+						Netki.Bitstream.Buffer buf = _app_packet_handler.MakePacket(info);
+						socket.Send(buf.buf, 0, (int)buf.bytesize, 0);
 
-					// it should be polled regularly
-					socket.ReceiveTimeout = 7000;
+						BufferedPacketDecoder pdec = new BufferedPacketDecoder(65536, _app_packet_handler);
+						byte[] rbuf = new byte[65536];
 
-					while (true)
-					{
-						int read = socket.Receive(rbuf);
-						if (read <= 0)
+						PacketExchangeDelegate xchange = delegate (Netki.Packet p)
 						{
-							Debug.NodeLog("Disconnected from master");
-							break;
+							Netki.Bitstream.Buffer b = _app_packet_handler.MakePacket(p);
+							socket.Send(b.buf, 0, (int)b.bytesize, 0);
+						};
+
+						Netki.GameNodeConfigurationsSupport conf = new Netki.GameNodeConfigurationsSupport();
+						conf.Patterns = _configurations;
+						xchange(conf);
+
+						// it should be polled regularly
+						socket.ReceiveTimeout = 7000;
+
+						while (true)
+						{
+							int read = socket.Receive(rbuf);
+							if (read <= 0)
+							{
+								Debug.NodeLog("Disconnected from master");
+								break;
+							}
+
+							pdec.OnStreamData(rbuf, 0, read, delegate (Netki.DecodedPacket packet)
+							{
+								OnMasterPacket(packet.packet, xchange);
+							});
 						}
-
-						pdec.OnStreamData(rbuf, 0, read, delegate (Netki.DecodedPacket packet)
-						{
-							OnMasterPacket(packet.packet, xchange);
-						});
 					}
+					catch (SocketException se)
+					{
+						Debug.NodeLog("SocketException happened. Retrying : " + se.ToString());
+						Random r = new Random();
+						Thread.Sleep(r.Next() % 2000 + 500);
+					}
+					catch (Exception e)
+					{
+						Debug.NodeLog("Unexpected exception : " + e.ToString());
+					}
+					Thread.Sleep(2000);
 				}
-				catch (SocketException se)
-				{
-					Debug.NodeLog("SocketException happened. Retrying : " + se.ToString());
-					Random r = new Random();
-					Thread.Sleep(r.Next() % 2000 + 500);
-				}
-				catch (Exception e)
-				{
-					Debug.NodeLog("Unexpected exception : " + e.ToString());
-				}
-				Thread.Sleep(500);
 			}
 		}
 	}
