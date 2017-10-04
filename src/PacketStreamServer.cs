@@ -217,7 +217,7 @@ namespace Cube
 			}
 			catch (Exception)
 			{
-				Console.WriteLine("Couldnt't/didn't need to start ipv4 port");
+				Console.WriteLine("Couldnt't/didn't need to start ipv6 port");
 			}
 
 		}
