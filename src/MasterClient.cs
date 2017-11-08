@@ -27,6 +27,8 @@ namespace Cube
 		List<string> _joinedGames = new List<string>();
 		Netki.MasterJoinGameResponse _joinGameResponse = null;
 		ApplicationPacketHandler _pkg_handler;
+		object _lk_result = new object();
+		bool _done = false;
 
 		public MasterClient(string host)
 		{
@@ -35,6 +37,9 @@ namespace Cube
 			_status = Status.IDLE;
 			_thread = new Thread(Run);
 			_thread.Start();
+
+			// _thread takes ownership over _status
+			// we keep ownership of _done
 		}
 
 		public bool AnonymousAuth(string Playername)
@@ -119,7 +124,10 @@ namespace Cube
 						}
 						break;
 					case Netki.MasterJoinGameResponse.TYPE_ID:
-						_joinGameResponse = (Netki.MasterJoinGameResponse)packet.packet;
+						lock  (_lk_result)
+						{
+							_joinGameResponse = (Netki.MasterJoinGameResponse)packet.packet;
+						}
 						break;
 					default:
 						break;
@@ -129,7 +137,7 @@ namespace Cube
 
 		public Netki.MasterJoinGameResponse GetJoinGameResponse()
 		{
-			lock (this)
+			lock (_lk_result)
 			{
 				Netki.MasterJoinGameResponse resp = _joinGameResponse;
 				_joinGameResponse = null;
@@ -165,23 +173,14 @@ namespace Cube
 		{
 			// hax to trigger response etc.
 			AnonymousAuth("");
-			lock (this)
-			{
-				_status = Status.DONE;
-				if (_socket != null)
-				{
-					_socket.Close();
-					_socket = null;
-				}
-			}
+			_done = true;
 		}
 
 		private void Run()
 		{
-			lock (this)
-			{
-				_status = Status.CONNECTING;
-			}
+			// _status is written by this thread
+			// _done is read by this thread
+			_status = Status.CONNECTING;
 
 			IPAddress addr = null;
 			foreach (IPAddress e in Dns.GetHostAddresses(_host))
@@ -199,73 +198,61 @@ namespace Cube
 			}
 
 			IPEndPoint remoteEP = new IPEndPoint(addr, NodeMaster.DEFAULT_CLIENT_PORT);
-			Socket socket = new Socket(addr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-			try
+			using (Socket socket = new Socket(addr.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
 			{
-				socket.Connect(remoteEP);
-
-				lock (this)
-				{
-					_status = Status.WAITING;
-				}
-
-				lock (_requests)
-				{
-					foreach (Netki.Packet p in _requests)
-					{
-						Netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(p);
-						if (buf.bitsize != 0)
-						{
-							Console.WriteLine("Bitsize != 0!");
-						}
-						socket.Send(buf.buf, 0, (int)buf.bytesize, 0);
-					}
-					_requests.Clear();
-					_socket = socket;
-				}
-
-				BufferedPacketDecoder dec = new BufferedPacketDecoder(65536, _pkg_handler);
-
 				try
 				{
-					while (true)
+					socket.Connect(remoteEP);
+					_status = Status.WAITING;
+
+					lock (_requests)
 					{
-						byte[] readBuf = new byte[65536];
-						int read = socket.Receive(readBuf);
-						if (read <= 0)
+						foreach (Netki.Packet p in _requests)
 						{
-							lock (this)
+							Netki.Bitstream.Buffer buf = _pkg_handler.MakePacket(p);
+							if (buf.bitsize != 0)
+							{
+								Console.WriteLine("Bitsize != 0!");
+							}
+							socket.Send(buf.buf, 0, (int)buf.bytesize, 0);
+						}
+						_requests.Clear();
+						_socket = socket;
+					}
+
+					BufferedPacketDecoder dec = new BufferedPacketDecoder(65536, _pkg_handler);
+
+					try
+					{
+						while (true)
+						{
+							byte[] readBuf = new byte[65536];
+							int read = socket.Receive(readBuf);
+							if (read <= 0)
 							{
 								if (_status == Status.WAITING)
 									_status = Status.FAILED;
+								break;
 							}
-							break;
-						}
 
-						dec.OnStreamData(readBuf, 0, read, OnServerPacket);
+							dec.OnStreamData(readBuf, 0, read, OnServerPacket);
 
-						lock (this)
-						{
-							if (_status == Status.DONE)
+							if (_done)
 							{
-								socket.Close();
-								_socket = null;
 								break;
 							}
 						}
 					}
+					catch (SocketException)
+					{
+						socket.Close();
+					}
 				}
-				catch (SocketException)
+				catch (SocketException er)
 				{
-					_socket = null;
+					Console.WriteLine("Exception " + er.Message);
+					_status = Status.FAILED;
 				}
-
-				socket.Close();
-			}
-			catch (SocketException er)
-			{
-				Console.WriteLine("Exception " + er.Message);
-				_status = Status.FAILED;
 			}
 
 			lock (_requests)
@@ -274,11 +261,8 @@ namespace Cube
 				_socket = null;
 			}
 
-			lock (this)
-			{
-				if (_status != Status.DONE)
-					_status = Status.FAILED;
-			}
+			if (!_done)
+				_status = Status.FAILED;
 		}
 	}
 }
